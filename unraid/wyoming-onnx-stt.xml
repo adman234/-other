@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>wyoming-onnx-stt</Name>
+  <Repository>lmo3/wyoming-onnx-stt:latest</Repository>
+  <Registry>https://hub.docker.com/r/lmo3/wyoming-onnx-stt</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/lmoe/wyoming-onnx-stt/issues</Support>
+  <Project>https://github.com/lmoe/wyoming-onnx-stt</Project>
+  <Overview>Wyoming protocol speech-to-text server for Home Assistant, running NVIDIA Parakeet / Canary models through onnx-asr and ONNX Runtime (CUDA or CPU). Drop-in replacement for wyoming-faster-whisper.&#xD;
+&#xD;
+Defaults to nemo-parakeet-tdt-0.6b-v3 (fp32) on an NVIDIA GPU. The model (~2.5 GB) downloads to /data on first start, so the first boot takes a few minutes.&#xD;
+&#xD;
+GPU: requires the Nvidia-Driver plugin. Leave --runtime=nvidia in Extra Parameters and set NVIDIA_VISIBLE_DEVICES to your GPU UUID (or 'all').&#xD;
+Quantization (Advanced View - Post Arguments): blank = fp32 (best accuracy, ~2 GB VRAM). Enter --quantization int8 for ~1 GB, faster, slight accuracy loss.&#xD;
+CPU only: remove --runtime=nvidia from Extra Parameters, set Device to cpu and Post Arguments to --quantization int8.&#xD;
+&#xD;
+Home Assistant: Settings - Devices and Services - Add Integration - Wyoming Protocol - host = Unraid IP, port = 10300.</Overview>
+  <Category>HomeAutomation: AI:</Category>
+  <WebUI/>
+  <TemplateURL>https://raw.githubusercontent.com/adman234/-other/claude/festive-bohr-ssj3f6/unraid/wyoming-onnx-stt.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/home-assistant/brands/master/core_integrations/wyoming/icon.png</Icon>
+  <ExtraParams>--runtime=nvidia</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>NVIDIA GPU + Nvidia-Driver plugin for GPU mode (optional; CPU mode works without it).</Requires>
+  <Config Name="Wyoming Port" Target="10300" Default="10300" Mode="tcp" Description="Wyoming protocol port. Point Home Assistant's Wyoming integration here. Change the host port if faster-whisper is still running on 10300." Type="Port" Display="always" Required="true" Mask="false">10300</Config>
+  <Config Name="Data / Model Cache" Target="/data" Default="/mnt/user/appdata/wyoming-onnx-stt" Mode="rw" Description="Model cache (Hugging Face downloads). Keeps models across container updates." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/wyoming-onnx-stt</Config>
+  <Config Name="Model" Target="STT_MODEL" Default="nemo-parakeet-tdt-0.6b-v3|nemo-parakeet-tdt-0.6b-v2|nemo-canary-1b-v2|nemo-canary-180m-flash" Mode="" Description="onnx-asr model. parakeet-tdt-0.6b-v3 = recommended (fast, excellent English, auto-detects 25 EU languages). v2 = English-only. canary-1b-v2 = most accurate multilingual but heavier (~4-5 GB VRAM at fp32). Any onnx-asr model name can be typed in." Type="Variable" Display="always" Required="true" Mask="false">nemo-parakeet-tdt-0.6b-v3</Config>
+  <Config Name="Device" Target="STT_DEVICE" Default="cuda|cpu" Mode="" Description="cuda = NVIDIA GPU (needs --runtime=nvidia). cpu = no GPU (also set Post Arguments to --quantization int8)." Type="Variable" Display="always" Required="true" Mask="false">cuda</Config>
+  <Config Name="Languages" Target="STT_LANGUAGES" Default="en" Mode="" Description="Comma-separated language codes advertised to Home Assistant (e.g. en or en,de,fr). Parakeet auto-detects the spoken language; Canary uses the language HA sends." Type="Variable" Display="always" Required="true" Mask="false">en</Config>
+  <Config Name="Default Language" Target="STT_DEFAULT_LANGUAGE" Default="en" Mode="" Description="Language used when the client doesn't specify one." Type="Variable" Display="always" Required="true" Mask="false">en</Config>
+  <Config Name="Warmup" Target="STT_WARMUP" Default="true|false" Mode="" Description="Run a dummy transcription at startup so the first real voice command isn't slow." Type="Variable" Display="always" Required="false" Mask="false">true</Config>
+  <Config Name="NVIDIA_VISIBLE_DEVICES" Target="NVIDIA_VISIBLE_DEVICES" Default="all" Mode="" Description="GPU UUID from the Nvidia-Driver plugin page, or 'all'. Ignored in CPU mode." Type="Variable" Display="always" Required="false" Mask="false">all</Config>
+  <Config Name="NVIDIA_DRIVER_CAPABILITIES" Target="NVIDIA_DRIVER_CAPABILITIES" Default="compute,utility" Mode="" Description="Leave as compute,utility." Type="Variable" Display="advanced" Required="false" Mask="false">compute,utility</Config>
+  <Config Name="Punctuation and Capitalization" Target="STT_PNC" Default="true|false" Mode="" Description="Canary only (Parakeet always punctuates). HA intent matching handles punctuation fine." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="VAD Enabled" Target="STT_VAD_ENABLED" Default="false|true" Mode="" Description="Silero VAD trims silence before transcription. Usually unnecessary for HA voice satellites (they already do VAD)." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="VAD Threshold" Target="STT_VAD_THRESHOLD" Default="0.5" Mode="" Description="Speech detection threshold 0.0-1.0." Type="Variable" Display="advanced" Required="false" Mask="false">0.5</Config>
+  <Config Name="TensorRT" Target="STT_TENSORRT" Default="false|true" Mode="" Description="Use the TensorRT execution provider. Faster on NVIDIA GPUs, but the first start builds engines for several minutes. Keep Warmup on if enabled." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="TensorRT Workspace (GB)" Target="STT_TRT_WORKSPACE_GB" Default="6" Mode="" Description="VRAM workspace for TensorRT engine building. Lower on small GPUs." Type="Variable" Display="advanced" Required="false" Mask="false">6</Config>
+  <Config Name="Zeroconf Name" Target="STT_ZEROCONF" Default="" Mode="" Description="Leave blank in bridge mode (it would advertise the unreachable docker IP). Set to e.g. wyoming-onnx-stt only if using br0/host networking with its own LAN IP." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="Log Level" Target="STT_LOG_LEVEL" Default="INFO|DEBUG|WARNING|ERROR" Mode="" Description="Logging verbosity." Type="Variable" Display="advanced" Required="false" Mask="false">INFO</Config>
+</Container>
