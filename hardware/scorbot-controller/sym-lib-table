@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "Scorbot")(type "KiCad")(uri "${KIPRJMOD}/lib/Scorbot.kicad_sym")(options "")(descr "Scorbot master board parts"))
+)

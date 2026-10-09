@@ -1,0 +1,47 @@
+Qty,Value,Footprint,References,Populate
+1,12V in (5.5x2.1),Connector_BarrelJack:BarrelJack_Horizontal,J1,yes
+1,12V in (alt),"Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",J2,yes
+1,5A blade (mini),Fuse:Fuseholder_Blade_Mini_Keystone_3568,F1,yes
+1,AOD4185 (rev. polarity),Package_TO_SOT_SMD:TO-252-2,Q1,yes
+23,10k,Resistor_SMD:R_0805_2012Metric,R1 R4 R6 R10 R15 R16 R40 R41 R42 R43 R44 R45 R46 R47 R48 R49 R50 R51 R61 R62 R63 R64 R65,yes
+1,BZT52C12 (Vgs clamp),Diode_SMD:D_SOD-123,D2,yes
+1,SMBJ18A,Diode_SMD:D_SMB,D1,yes
+1,1000uF 25V low-ESR,Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,C1,yes
+1,100nF 50V,Capacitor_SMD:C_0805_2012Metric,C2,yes
+1,"E-STOP (NC, in VM line)","Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",J3,yes
+1,10k (VM bleeder),Resistor_SMD:R_1206_3216Metric,R2,yes
+1,22k,Resistor_SMD:R_0805_2012Metric,R3,yes
+1,47k,Resistor_SMD:R_0805_2012Metric,R5,yes
+11,100nF,Capacitor_SMD:C_0805_2012Metric,C3 C6 C9 C10 C12 C13 C61 C62 C63 C64 C65,yes
+3,4.7k,Resistor_SMD:R_0805_2012Metric,R7 R13 R14,yes
+1,VM on (green),LED_SMD:LED_0805_2012Metric,D3,yes
+1,AP63205WU,Package_TO_SOT_SMD:TSOT-23-6,U1,yes
+1,100k,Resistor_SMD:R_0805_2012Metric,R8,yes
+2,10uF 50V,Capacitor_SMD:C_1206_3216Metric,C4 C5,yes
+1,6.8uH 3A,Inductor_SMD:L_Bourns_SRN6045TA,L1,yes
+2,22uF 10V,Capacitor_SMD:C_1206_3216Metric,C7 C8,yes
+3,1k,Resistor_SMD:R_0805_2012Metric,R9 R11 R12,yes
+1,5V (green),LED_SMD:LED_0805_2012Metric,D4,yes
+1,SS14,Diode_SMD:D_SMA,D5,yes
+1,ESP32-DevKitC-32E (38-pin),Scorbot:ESP32_DevKitC_V4_Socket,U2,yes
+1,STATUS (blue),LED_SMD:LED_0805_2012Metric,D6,yes
+1,3V3 (green),LED_SMD:LED_0805_2012Metric,D7,yes
+1,TCA9555PWR (0x20),Package_SO:TSSOP-24_4.4x7.8mm_P0.65mm,U5,yes
+1,ADS7828 (0x48),Package_SO:TSSOP-16_4.4x5mm_P0.65mm,U6,yes
+1,2.2uF,Capacitor_SMD:C_0805_2012Metric,C11,yes
+1,I2C expansion,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,J5,yes
+1,Spare TCA9555 I/O,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,J6,yes
+1,Pololu #4035 DRV8874 (M1),Scorbot:Pololu_DRV8874_Carrier_Socket,U10,yes
+6,100uF 25V,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,C21 C22 C23 C24 C25 C26,yes
+6,DNP: lowers I-limit,Resistor_SMD:R_0805_2012Metric,R21 R22 R23 R24 R25 R26,DNP
+1,Pololu #4035 DRV8874 (M2),Scorbot:Pololu_DRV8874_Carrier_Socket,U11,yes
+1,Pololu #4035 DRV8874 (M3),Scorbot:Pololu_DRV8874_Carrier_Socket,U12,yes
+1,Pololu #4035 DRV8874 (M4),Scorbot:Pololu_DRV8874_Carrier_Socket,U13,yes
+1,Pololu #4035 DRV8874 (M5),Scorbot:Pololu_DRV8874_Carrier_Socket,U14,yes
+1,Pololu #4035 DRV8874 (M6),Scorbot:Pololu_DRV8874_Carrier_Socket,U15,yes
+6,47R 0.25W,Resistor_SMD:R_1206_3216Metric,R31 R32 R33 R34 R35 R36,yes
+12,1nF,Capacitor_SMD:C_0805_2012Metric,C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51,yes
+1,74LVC14 (axes 1-3),Package_SO:SOIC-14_3.9x8.7mm_P1.27mm,U3,yes
+1,74LVC14 (axes 4-6),Package_SO:SOIC-14_3.9x8.7mm_P1.27mm,U4,yes
+1,DD-50 female R/A (robot cable),Scorbot:DD50_Female_Horizontal_P2.77x2.84mm,J4,yes
+4,M3,MountingHole:MountingHole_3.2mm_M3,H1 H2 H3 H4,yes
