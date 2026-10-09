@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>wake-clip-keeper</Name>
+  <Repository>python:3.12-alpine</Repository>
+  <Registry>https://hub.docker.com/_/python</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/adman234/-other</Support>
+  <Project>https://github.com/adman234/-other/tree/claude/affectionate-allen-7amx8d/unraid/wake-clip-keeper</Project>
+  <Overview>Keeps Home Assistant Assist debug recordings small, with nothing to manage.&#xD;
+&#xD;
+With the wake word running in Home Assistant (openWakeWord), every run's 00_wake WAV holds everything streamed while waiting for the wake word, often hundreds of MB. Once a run folder stops changing, this saves the last few seconds of the wake WAV (the audio that triggered it) and the speech-to-text WAV into the Clips folder, then deletes the original. Old clips are removed after Keep Days, or oldest first beyond Max Clips MB.&#xD;
+&#xD;
+Before the first start, download the script (otherwise Docker creates an empty folder and the container exits):&#xD;
+mkdir -p /mnt/user/appdata/wake-clip-keeper &amp;&amp; wget -O /mnt/user/appdata/wake-clip-keeper/wake_clip_keeper.py https://raw.githubusercontent.com/adman234/-other/claude/affectionate-allen-7amx8d/unraid/wake-clip-keeper/wake_clip_keeper.py&#xD;
+&#xD;
+Clips are named date-time_device_wake.wav / _stt.wav. Every wake clip is a detection: if nobody said the wake word, it is a false trigger and makes good negative training data.</Overview>
+  <Category>HomeAutomation: Tools:</Category>
+  <WebUI/>
+  <TemplateURL>https://raw.githubusercontent.com/adman234/-other/claude/affectionate-allen-7amx8d/unraid/wake-clip-keeper.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/home-assistant/brands/master/core_integrations/wyoming/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs>python -u /app/wake_clip_keeper.py</PostArgs>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Home Assistant with assist_pipeline: debug_recording_dir set to a folder on an Unraid share.</Requires>
+  <Config Name="HA Debug Recordings" Target="/recordings" Default="" Mode="rw" Description="The host folder Home Assistant's debug_recording_dir points to (the folder that contains the per-device folders, which contain the run folders with 00_wake / 01_stt WAVs). Its run folders are deleted after clipping." Type="Path" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="Clips" Target="/clips" Default="/mnt/user/appdata/wake-clip-keeper/clips" Mode="rw" Description="Where the small clips go. Keep this OUTSIDE the HA Debug Recordings folder." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/wake-clip-keeper/clips</Config>
+  <Config Name="Script" Target="/app/wake_clip_keeper.py" Default="/mnt/user/appdata/wake-clip-keeper/wake_clip_keeper.py" Mode="ro" Description="Download it first (see the overview)." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/wake-clip-keeper/wake_clip_keeper.py</Config>
+  <Config Name="Wake Clip Seconds" Target="CLIP_SECONDS" Default="6" Mode="" Description="Seconds kept from the end of each wake word recording." Type="Variable" Display="always" Required="false" Mask="false">6</Config>
+  <Config Name="Keep Days" Target="KEEP_DAYS" Default="14" Mode="" Description="Clips older than this are deleted." Type="Variable" Display="always" Required="false" Mask="false">14</Config>
+  <Config Name="Max Clips MB" Target="MAX_CLIPS_MB" Default="500" Mode="" Description="Total size cap for the Clips folder; the oldest clips go first." Type="Variable" Display="always" Required="false" Mask="false">500</Config>
+  <Config Name="Host Time Zone" Target="/etc/localtime" Default="/etc/localtime" Mode="ro" Description="Uses the Unraid server's time zone for clip names." Type="Path" Display="advanced" Required="false" Mask="false">/etc/localtime</Config>
+  <Config Name="Max STT Seconds" Target="MAX_OTHER_SECONDS" Default="30" Mode="" Description="Cap for the speech-to-text clips (they are normally a few seconds)." Type="Variable" Display="advanced" Required="false" Mask="false">30</Config>
+  <Config Name="Settle Seconds" Target="SETTLE_SECONDS" Default="120" Mode="" Description="A run folder is processed once none of its files has changed for this long." Type="Variable" Display="advanced" Required="false" Mask="false">120</Config>
+  <Config Name="Scan Interval" Target="SCAN_INTERVAL" Default="60" Mode="" Description="Seconds between scans." Type="Variable" Display="advanced" Required="false" Mask="false">60</Config>
+</Container>
