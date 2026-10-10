@@ -218,11 +218,11 @@ class Sheet:
 # shelf-packed onto the page in this order.
 GROUPS = [
     ("power", 200, "POWER IN, REVERSE PROTECTION, E-STOP (no relay: NC contacts in VM line)"),
-    ("buck", 150, "5 V BUCK + DEVKIT 5V FEED"),
+    ("buck", 150, "5 V: Pololu D24V22F5 plug-in buck + DEVKIT 5V FEED"),
     ("mcu", 120, "ESP32-DevKitC-32E (plug-in, 2x 1x19 female headers)"),
-    ("i2c", 200, "I2C: TCA9555 (0x20) + ADS7828 (0x48)"),
+    ("i2c", 200, "I2C: TCA9555 (0x20) + 2x ADS1115 modules (0x48, 0x49)"),
     ("drivers", 330, "MOTOR DRIVERS: 6x Pololu DRV8874 carrier (plug-in) - PIN ORDER PLACEHOLDER"),
-    ("encoders", 330, "ENCODER FRONT END: 47R VLED, 10k pull-ups to 5V, 1nF, 74LVC14 at 3.3V"),
+    ("encoders", 330, "ENCODER FRONT END: 47R VLED from 5V, 4.7k pull-ups to 3.3V, 1nF, direct to ESP32"),
     ("switches", 130, "HOME SWITCHES (to TCA9555 P1.0-P1.4)"),
     ("db50", 90, "ROBOT CABLE: DD-50 female (SCORBOT-ER 4u manual ch. 8)"),
     ("flags", 60, "POWER FLAGS"),
@@ -268,9 +268,9 @@ def build():
         print(f"warning: notes at y={notes_y:.0f} mm collide with the title block")
     sh.text("NOTES\n1. Pololu DRV8874 carrier pin ORDER is a placeholder (names are correct). Fix design.CARRIER_ROWS and regenerate.\n"
             "2. DB50 pinout from SCORBOT-ER 4u User Manual ch. 8 (same as ER III Table D-1). Pins 37-44 unused, 22 = gripper switch (no connection in arm).\n"
-            "3. 74HC14 symbol is used for the 74LVC14 (same pinout). Powered from +3V3; inputs are 5 V tolerant.\n"
+            "3. Plug-in module pin orders (Pololu D24V22F5, ADS1115 breakout) are placeholders: check against your modules.\n"
             "4. Carrier current limit with SLEEP at 3.3 V is about 2.9 A (VREF pulled to SLEEP by 10k on the carrier, CS has 2.49k). R21-R26 (DNP) lower it.\n"
-            "5. ADS7828 uses its internal 2.5 V reference: CS reads 1.12 V/A, so readings clip above about 2.2 A.",
+            "5. Current sense: CS reads 1.12 V/A into ADS1115 modules (use the +/-4.096 V range). VM monitored via 47k/10k on ADS1115 #2 A2.",
             MARGIN, notes_y, size=1.8)
     path = os.path.join(PROJ, PROJECT_NAME + ".kicad_sch")
     sh.save(path)
