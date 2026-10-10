@@ -81,9 +81,28 @@ def db50_symbol():
                   desc="DD-50 (3-row D-sub) female, robot cable. Pin names follow the SCORBOT-ER 4u manual ch. 8")
 
 
+def module_symbol(name, value, footprint, pins, types, desc):
+    """Single-row header module: all pins on the left."""
+    left = [(i + 1, n, types.get(n, "passive")) for i, n in enumerate(pins)]
+    return symbol(name, "U", value, footprint, left, [], width=15.24, desc=desc)
+
+
+def buck_symbol():
+    return module_symbol("Pololu_D24V22F5", "Pololu D24V22F5", "Scorbot:Pololu_D24V22F5_Socket",
+                         D.BUCK_PINS, {"VIN": "power_in", "GND": "power_in", "VOUT": "power_out", "EN": "input"},
+                         "Pololu D24V22F5 5V 2.5A step-down module on 0.1in header. PIN ORDER IS A PLACEHOLDER")
+
+
+def ads1115_symbol():
+    return module_symbol("ADS1115_Module", "ADS1115 module", "Scorbot:ADS1115_Module_Socket",
+                         D.ADS1115_PINS, {"VDD": "power_in", "GND": "power_in", "SDA": "bidirectional",
+                                          "SCL": "input", "ALRT": "open_collector"},
+                         "Generic ADS1115 4-channel 16-bit I2C ADC breakout, 10-pin 0.1in header. PIN ORDER VARIES BY SELLER")
+
+
 def write_symbols():
     text = ["(kicad_symbol_lib (version 20220914) (generator scorbot_gen)",
-            devkit_symbol(), carrier_symbol(), db50_symbol(), ")"]
+            devkit_symbol(), carrier_symbol(), db50_symbol(), buck_symbol(), ads1115_symbol(), ")"]
     with open(os.path.join(LIB, "Scorbot.kicad_sym"), "w") as f:
         f.write("\n".join(text) + "\n")
 
@@ -199,11 +218,31 @@ def db50_fp():
     write_fp(name, L)
 
 
+def single_row_fp(name, pins, descr, body_w=6.0):
+    """1xN female 0.1in header socket for a plug-in module, pin names on F.Fab."""
+    n = len(pins)
+    L = fp_header(name, descr, "module socket 2.54mm", (0, -3.0), (0, n * 2.54 + 1))
+    for k, pname in enumerate(pins):
+        L.append(pad(k + 1, 0, k * 2.54, first=(k == 0)))
+        L.append(fp_text(pname, 3.0, k * 2.54, "F.Fab", 0.6))
+    y2 = (n - 1) * 2.54 + 1.27
+    L.append(fp_rect(-1.27, -1.27, 1.27, y2, "F.SilkS", 0.12))
+    L.append(fp_text("PINOUT UNVERIFIED", 0, -1.9 - 0.6, "F.Fab", 0.6))
+    # module body outline (approximate) so plugged-in modules can't collide
+    L.append(fp_rect(-1.5, -1.5, body_w, y2 + 0.25, "F.Fab", 0.1))
+    L.append(fp_rect(-1.77, -1.77, body_w + 0.5, y2 + 0.5, "F.CrtYd", 0.05))
+    write_fp(name, L)
+
+
 def main():
     os.makedirs(os.path.join(LIB, "Scorbot.pretty"), exist_ok=True)
     write_symbols()
     devkit_fp()
     carrier_fp()
+    single_row_fp("Pololu_D24V22F5_Socket", D.BUCK_PINS,
+                  "1x4 socket for Pololu D24V22F5. PLACEHOLDER pin order: check the module silkscreen", body_w=16.0)
+    single_row_fp("ADS1115_Module_Socket", D.ADS1115_PINS,
+                  "1x10 socket for a generic ADS1115 breakout. Pin order varies by seller: check yours", body_w=17.0)
     db50_fp()
     print("library written to", os.path.normpath(LIB))
 

@@ -82,6 +82,14 @@ CARRIER_ROWS = [
 CARRIER_ROW_SPACING = 12.7  # mm -- PLACEHOLDER
 
 
+# ---------------------------------------------------------------------------
+# Plug-in modules on 0.1" headers. PIN ORDER IS A PLACEHOLDER until checked
+# against the module you buy (pololu.com / seller listings were unreachable).
+# ---------------------------------------------------------------------------
+BUCK_PINS = ["EN", "VIN", "GND", "VOUT"]  # Pololu D24V22F5 (5 V 2.5 A)
+ADS1115_PINS = ["VDD", "GND", "SCL", "SDA", "ADDR", "ALRT", "A0", "A1", "A2", "A3"]  # common ADS1115 breakout
+
+
 def carrier_pins():
     """Pin number -> name for the carrier, numbered row by row."""
     out, n = {}, 1
@@ -132,14 +140,10 @@ part("J2", "Connector:Screw_Terminal_01x02", "12V in (alt)",
      "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",
      {1: "VIN_RAW", 2: "GND"}, "power", pcb=(5, 32, 90))
 part("F1", "Device:Fuse", "5A blade (mini)", "Fuse:Fuseholder_Blade_Mini_Keystone_3568",
-     {1: "VIN_RAW", 2: "VIN_F"}, "power", pcb=(28, 22, 90))
-part("Q1", "Device:Q_PMOS_GDS", "AOD4185 (rev. polarity)",
-     "Package_TO_SOT_SMD:TO-252-2",
-     {1: "Q1_G", 2: "VIN_F", 3: "VIN"}, "power", pcb=(30, 44, 0))
-R("R1", "10k", "Q1_G", "GND", "power", pcb=(22, 50, 0))
-part("D2", "Device:D_Zener", "BZT52C12 (Vgs clamp)", "Diode_SMD:D_SOD-123",
-     {1: "VIN", 2: "Q1_G"}, "power", pcb=(22, 54, 0))
-part("D1", "Device:D_TVS", "SMBJ18A", "Diode_SMD:D_SMB",
+     {1: "VIN_RAW", 2: "VIN"}, "power", pcb=(28, 22, 90))
+# No reverse-polarity FET: a reversed supply forward-biases the unidirectional
+# TVS and blows F1. The driver carriers and buck module also protect themselves.
+part("D1", "Device:D_TVS", "SMBJ18A (unidirectional)", "Diode_SMD:D_SMB",
      {1: "VIN", 2: "GND"}, "power", pcb=(40, 44, 90))
 CP("C1", "1000uF 25V low-ESR", "VIN", "GND", "power",
    "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", pcb=(14, 58, 0))
@@ -158,18 +162,10 @@ C("C3", "100nF", "VM_ADC", "GND", "power", pcb=(30, 80, 0))
 R("R7", "4.7k", "VM", "LED_VM", "power", pcb=(38, 70, 0))
 LED("D3", "VM on (green)", "LED_VM", "GND", "power", pcb=(38, 74, 0))
 
-# ---- 5 V buck -------------------------------------------------------------
-part("U1", "Regulator_Switching:AP63205WU", "AP63205WU", "Package_TO_SOT_SMD:TSOT-23-6",
-     {1: "+5V", 2: "BUCK_EN", 3: "VIN", 4: "GND", 5: "BUCK_SW", 6: "BUCK_BST"},
+# ---- 5 V: Pololu D24V22F5 plug-in buck module ------------------------------
+part("U1", "Scorbot:Pololu_D24V22F5", "Pololu D24V22F5 (5V 2.5A)", "Scorbot:Pololu_D24V22F5_Socket",
+     {i + 1: {"EN": None, "VIN": "VIN", "GND": "GND", "VOUT": "+5V"}[n] for i, n in enumerate(BUCK_PINS)},
      "buck", pcb=(36, 58, 0))
-R("R8", "100k", "VIN", "BUCK_EN", "buck", pcb=(36, 53, 0))
-C("C4", "10uF 50V", "VIN", "GND", "buck", fp=C1206, pcb=(42, 53, 90))
-C("C5", "10uF 50V", "VIN", "GND", "buck", fp=C1206, pcb=(45, 53, 90))
-C("C6", "100nF", "BUCK_BST", "BUCK_SW", "buck", pcb=(36, 62, 0))
-part("L1", "Device:L", "6.8uH 3A", "Inductor_SMD:L_Bourns_SRN6045TA",
-     {1: "BUCK_SW", 2: "+5V"}, "buck", pcb=(46, 62, 0))
-C("C7", "22uF 10V", "+5V", "GND", "buck", fp=C1206, pcb=(42, 68, 90))
-C("C8", "22uF 10V", "+5V", "GND", "buck", fp=C1206, pcb=(45, 68, 90))
 R("R9", "1k", "+5V", "LED_5V", "buck", pcb=(38, 80, 0))
 LED("D4", "5V (green)", "LED_5V", "GND", "buck", pcb=(38, 83, 0))
 part("D5", "Device:D_Schottky", "SS14", "Diode_SMD:D_SMA",
@@ -178,9 +174,9 @@ part("D5", "Device:D_Schottky", "SS14", "Diode_SMD:D_SMA",
 # ---- ESP32 DevKit ---------------------------------------------------------
 esp_net = {
     "3V3": "+3V3", "5V": "+5V_DK", "GND": "GND",
-    "IO36": "ENC1_A", "IO39": "ENC1_B", "IO34": "ENC2_A", "IO35": "ENC2_B",
-    "IO32": "ENC3_A", "IO33": "ENC3_B", "IO25": "ENC4_A", "IO26": "ENC4_B",
-    "IO27": "ENC5_A", "IO13": "ENC5_B", "IO4": "ENC6_A", "IO23": "ENC6_B",
+    "IO36": "ENC1_P0", "IO39": "ENC1_P1", "IO34": "ENC2_P0", "IO35": "ENC2_P1",
+    "IO32": "ENC3_P0", "IO33": "ENC3_P1", "IO25": "ENC4_P0", "IO26": "ENC4_P1",
+    "IO27": "ENC5_P0", "IO13": "ENC5_P1", "IO4": "ENC6_P0", "IO23": "ENC6_P1",
     "IO16": "PWM1", "IO17": "PWM2", "IO18": "PWM3", "IO19": "PWM4",
     "IO14": "PWM5", "IO15": "PWM6",
     "IO12": "NSLEEP", "IO21": "SDA", "IO22": "SCL", "IO5": "EXP_INT",
@@ -196,7 +192,7 @@ LED("D6", "STATUS (blue)", "LED_ST_A", "GND", "mcu", pcb=(62, 108, 0))
 R("R12", "1k", "+3V3", "LED_3V3", "mcu", pcb=(62, 112, 0))
 LED("D7", "3V3 (green)", "LED_3V3", "GND", "mcu", pcb=(62, 116, 0))
 
-# ---- I2C: TCA9555 + ADS7828 -----------------------------------------------
+# ---- I2C: TCA9555 + 2x ADS1115 modules -----------------------------------------------
 R("R13", "4.7k", "+3V3", "SDA", "i2c", pcb=(72, 70, 0))
 R("R14", "4.7k", "+3V3", "SCL", "i2c", pcb=(72, 73, 0))
 R("R15", "10k", "+3V3", "EXP_INT", "i2c", pcb=(72, 76, 0))
@@ -210,13 +206,13 @@ tca = {1: "EXP_INT", 2: "GND", 3: "GND", 21: "GND", 22: "SCL", 23: "SDA",
 part("U5", "Interface_Expansion:TCA9555PWR", "TCA9555PWR (0x20)",
      "Package_SO:TSSOP-24_4.4x7.8mm_P0.65mm", tca, "i2c", pcb=(84, 56, 0))
 C("C9", "100nF", "+3V3", "GND", "i2c", pcb=(84, 48, 0))
-ads = {1: "CS1", 2: "CS2", 3: "CS3", 4: "CS4", 5: "CS5", 6: "CS6",
-       7: "VM_ADC", 8: "GND", 9: "GND", 10: "ADC_REF", 11: "GND",
-       12: "GND", 13: "GND", 14: "SCL", 15: "SDA", 16: "+3V3"}
-part("U6", "Analog_ADC:ADS7828", "ADS7828 (0x48)",
-     "Package_SO:TSSOP-16_4.4x5mm_P0.65mm", ads, "i2c", pcb=(104, 56, 0))
-C("C10", "100nF", "+3V3", "GND", "i2c", pcb=(104, 49, 0))
-C("C11", "2.2uF", "ADC_REF", "GND", "i2c", pcb=(110, 56, 90))
+ads_a = {"VDD": "+3V3", "GND": "GND", "SCL": "SCL", "SDA": "SDA", "ADDR": "GND", "ALRT": None,
+         "A0": "CS1", "A1": "CS2", "A2": "CS3", "A3": "CS4"}
+ads_b = dict(ads_a, ADDR="+3V3", A0="CS5", A1="CS6", A2="VM_ADC", A3="GND")
+part("U6", "Scorbot:ADS1115_Module", "ADS1115 module (0x48)", "Scorbot:ADS1115_Module_Socket",
+     {i + 1: ads_a[n] for i, n in enumerate(ADS1115_PINS)}, "i2c", pcb=(104, 56, 0))
+part("U7", "Scorbot:ADS1115_Module", "ADS1115 module (0x49)", "Scorbot:ADS1115_Module_Socket",
+     {i + 1: ads_b[n] for i, n in enumerate(ADS1115_PINS)}, "i2c", pcb=(104, 76, 0))
 part("J5", "Connector_Generic:Conn_01x04", "I2C expansion",
      "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
      {1: "+3V3", 2: "GND", 3: "SDA", 4: "SCL"}, "i2c", pcb=(84, 112, 90))
@@ -245,28 +241,15 @@ for i in range(1, 7):
       pcb=(x + 12, 34, 0), dnp=True)
 
 # ---- Encoder + switch front end ---------------------------------------------
-# Buffer channel assignment: (chip, input pin, output pin)
-LVC_CH = [("U3", 1, 2), ("U3", 3, 4), ("U3", 5, 6), ("U3", 9, 8), ("U3", 11, 10), ("U3", 13, 12),
-          ("U4", 1, 2), ("U4", 3, 4), ("U4", 5, 6), ("U4", 9, 8), ("U4", 11, 10), ("U4", 13, 12)]
-lvc_nets = {"U3": {14: "+3V3", 7: "GND"}, "U4": {14: "+3V3", 7: "GND"}}
-ch = 0
+# No buffers: the encoders are open phototransistors, so 4.7k pull-ups to 3.3 V
+# make them ESP32-safe. 1 nF + the ESP32 PCNT glitch filter handle noise.
 for i in range(1, 7):
     y0 = 44 + (i - 1) * 11
     R(f"R{30 + i}", "47R 0.25W", "+5V", f"ENC{i}_VLED", "encoders", fp=R1206, pcb=(132, y0, 0))
     for k, sig in ((0, "P0"), (1, "P1")):
         n = (i - 1) * 2 + k
-        R(f"R{40 + n}", "10k", "+5V", f"ENC{i}_{sig}", "encoders", pcb=(140, y0 + k * 3, 0))
+        R(f"R{40 + n}", "4.7k", "+3V3", f"ENC{i}_{sig}", "encoders", pcb=(140, y0 + k * 3, 0))
         C(f"C{40 + n}", "1nF", f"ENC{i}_{sig}", "GND", "encoders", pcb=(146, y0 + k * 3, 0))
-        chip, pin_in, pin_out = LVC_CH[ch]
-        lvc_nets[chip][pin_in] = f"ENC{i}_{sig}"
-        lvc_nets[chip][pin_out] = f"ENC{i}_{'A' if sig == 'P0' else 'B'}"
-        ch += 1
-part("U3", "74xx:74HC14", "74LVC14 (axes 1-3)", "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm",
-     lvc_nets["U3"], "encoders", pcb=(120, 56, 90))
-part("U4", "74xx:74HC14", "74LVC14 (axes 4-6)", "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm",
-     lvc_nets["U4"], "encoders", pcb=(120, 88, 90))
-C("C12", "100nF", "+3V3", "GND", "encoders", pcb=(114, 56, 90))
-C("C13", "100nF", "+3V3", "GND", "encoders", pcb=(114, 88, 90))
 for i in range(1, 6):
     R(f"R{60 + i}", "10k", "+3V3", f"SW{i}", "switches", pcb=(100, 66 + i * 4, 0))
     C(f"C{60 + i}", "100nF", f"SW{i}", "GND", "switches", pcb=(108, 66 + i * 4, 0))
@@ -289,7 +272,7 @@ part("J4", "Scorbot:DD50_Female", "DD-50 female R/A (robot cable)",
      "Scorbot:DD50_Female_Horizontal_P2.77x2.84mm", db, "db50", pcb=(170, 54, 90))
 
 # ---- Power flags + mounting holes -------------------------------------------
-for k, net in enumerate(["GND", "VIN", "VIN_RAW", "VM", "+5V", "+5V_DK"]):
+for k, net in enumerate(["GND", "VIN", "VIN_RAW", "VM", "+5V_DK"]):
     part(f"#FLG0{k + 1}", "power:PWR_FLAG", "PWR_FLAG", "", {1: net}, "flags")
 for k, xy in enumerate([(4, 4), (181, 4), (4, 124), (181, 124)]):
     part(f"H{k + 1}", "Mechanical:MountingHole", "M3", "MountingHole:MountingHole_3.2mm_M3",

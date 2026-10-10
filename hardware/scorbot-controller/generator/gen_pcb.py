@@ -137,16 +137,20 @@ def build():
         return [fps[p["ref"]] for p in D.PARTS
                 if p["group"] == group and p["ref"] in fps and p["ref"] not in exclude]
 
-    explicit = {"J1", "J2", "J3", "J4", "U2", "H1", "H2", "H3", "H4"} | {f"U{9 + i}" for i in range(1, 7)} \
+    # ADS1115 modules side by side in the middle of the board
+    for ref, left in (("U6", 86.0), ("U7", 106.0)):
+        fps[ref].SetOrientationDegrees(0)
+        move_bbox_to(fps[ref], left=left, top=46)
+    explicit = {"J1", "J2", "J3", "J4", "U2", "U6", "U7", "H1", "H2", "H3", "H4"} | {f"U{9 + i}" for i in range(1, 7)} \
         | {f"C{20 + i}" for i in range(1, 7)} | {f"R{20 + i}" for i in range(1, 7)}
     for fp in fps.values():
         fp.SetOrientationDegrees(fp.GetOrientationDegrees())
     shelf_pack(refs("power", explicit), 14, 22, 56, 60)
     shelf_pack(refs("buck", explicit), 14, 62, 56, 88)
-    shelf_pack(refs("i2c", explicit), 60, 48, 118, 88)
+    shelf_pack(refs("i2c", explicit), 60, 48, 84, 88)
     shelf_pack(refs("mcu", explicit), 66, 100, 118, 124)
-    shelf_pack(refs("encoders", explicit), 120, 48, 166, 108)
-    shelf_pack(refs("switches", explicit), 120, 110, 166, 126)
+    shelf_pack(refs("encoders", explicit), 128, 48, 166, 108)
+    shelf_pack(refs("switches", explicit), 128, 110, 166, 126)
 
     # ---- outline, text, ground pour ------------------------------------------------
     corners = [(0, 0), (W, 0), (W, H), (0, H)]

@@ -1,8 +1,10 @@
 # Scorbot ER-4u ESP32 master board (KiCad)
 
-KiCad project for the replacement controller: an ESP32 DevKit and six Pololu
-DRV8874 carriers plug into a master board, and the robot's DD-50 cable plugs
-straight into the board edge.
+KiCad project for the replacement controller: an ESP32 DevKit, six Pololu
+DRV8874 carriers, a Pololu D24V22F5 5 V buck module and two ADS1115 ADC
+modules plug into a master board, and the robot's DD-50 cable plugs straight
+into the board edge. The only SMD chip left for JLCPCB to place is the
+TCA9555; everything else on the board is passives, LEDs and diodes.
 
 **Status: v0.1, generated, schematic complete, PCB placed but NOT routed.**
 
@@ -25,9 +27,9 @@ pip install kiutils cairosvg   # plus KiCad 7+ (kicad-cli and its pcbnew Python 
 `generate.sh` writes the library, schematic, PCB and BOM, then:
 
 - exports KiCad's own netlist from the schematic and checks it against
-  `design.py` pin by pin (currently 412 connections, 0 mismatches);
+  `design.py` pin by pin (currently 354 connections, 0 mismatches);
 - runs KiCad DRC on the board. Current result: no courtyard overlaps or
-  clearance errors; 278 unconnected items (expected, the board is unrouted)
+  clearance errors; 233 unconnected items (expected, the board is unrouted)
   and a few silkscreen warnings. `lib_footprint_issues` only appears when the
   standard KiCad libraries aren't in the global library table.
 
@@ -42,12 +44,15 @@ changes.
    their physical order and the row spacing were guessed. Fix
    `CARRIER_ROWS` / `CARRIER_ROW_SPACING` in `design.py` from Pololu's #4035
    pinout drawing and regenerate.
-2. **DevKit row spacing.** `DEVKIT_ROW_SPACING = 25.4` mm. Measure your
+2. **Module pin orders are placeholders too**: the Pololu D24V22F5
+   (`BUCK_PINS`) and the ADS1115 breakout (`ADS1115_PINS`, which varies by
+   seller). Check them against the modules you buy and regenerate.
+3. **DevKit row spacing.** `DEVKIT_ROW_SPACING = 25.4` mm. Measure your
    38-pin ESP32-DevKitC-32E; clones vary.
-3. **DD-50 footprint** is generated from KiCad's D-sub geometry (pitch
+4. **DD-50 footprint** is generated from KiCad's D-sub geometry (pitch
    2.77 x 2.84 mm, rows 1 and 3 aligned, D-shell hole spacing 61.11 mm). Check it
    against the drawing of the exact right-angle connector you buy.
-4. **Routing.** Not done. The project's net classes are set up: Motor
+5. **Routing.** Not done. The project's net classes are set up: Motor
    (VM, VIN*, MOT*, GND) 1.0 mm, Power (+5V*, +3V3, BUCK_SW, ENC*_VLED) 0.6 mm,
    Default 0.25 mm. A GND pour on B.Cu is defined; keep copper out from
    under the DevKit antenna (rule area `ANTENNA_KEEPOUT`).
@@ -60,12 +65,15 @@ changes.
   sets direction.
 - **Encoders**: bare IR LEDs + phototransistors. 47 R per axis from 5 V for
   VLED (ER III reference value; check against the ER-4u's upgraded PC510
-  encoders), 10 k pull-ups to 5 V, 1 nF, then 74LVC14 at 3.3 V into the ESP32.
+  encoders). P0/P1 have 4.7 k pull-ups to 3.3 V and 1 nF, straight into the
+  ESP32 (no buffer); the PCNT glitch filter handles noise.
+- **No reverse-polarity FET**: a reversed supply forward-biases the
+  unidirectional SMBJ18A and blows F1.
 - **E-stop**: no relay; the NC contacts sit in the VM line (J3), so they must
   be rated for total motor current. Logic stays powered.
 - **Carrier current limit**: VREF is pulled to SLEEP (3.3 V) by 10 k on the
   carrier and CS has 2.49 k, giving about 2.9 A. R21-R26 (DNP) lower it.
-- **ADS7828** uses its internal 2.5 V reference: CS reads 1.12 V/A, so
-  readings clip above about 2.2 A.
+- **Current sense**: two ADS1115 modules (0x48: CS1-4, 0x49: CS5, CS6 and
+  VM/5.7). CS reads 1.12 V/A; use the ADS1115's +/-4.096 V range.
 - Plan, firmware architecture and API: see the "Scorbot ER-4u ESP32
   Controller Plan" doc.
