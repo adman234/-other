@@ -104,12 +104,14 @@ def build():
 
     # ---- explicit, edge-critical placements ----------------------------------
     # Power entry on the left edge, connectors opening to the left.
-    fps["J1"].SetOrientationDegrees(0)  # KiCad's barrel jack opens toward -X
+    fps["J1"].SetOrientationDegrees(270)  # PJ-102AH opens toward +Y; turn it to face -X
     move_bbox_to(fps["J1"], left=-2.0, top=10)
     fps["J2"].SetOrientationDegrees(270)
     move_bbox_to(fps["J2"], left=-1.0, top=bbox(fps["J1"])[3] + 3)
     fps["J3"].SetOrientationDegrees(270)
     move_bbox_to(fps["J3"], left=-1.0, top=58)
+    fps["J7"].SetOrientationDegrees(270)  # fuse screw terminal, wire entry to the left edge
+    move_bbox_to(fps["J7"], left=-1.0, top=bbox(fps["J2"])[3] + 2)
     # DB50 on the right edge, mating face out.
     fps["J4"].SetOrientationDegrees(90)
     l, t, r, b = bbox(fps["J4"])
@@ -141,7 +143,7 @@ def build():
     for ref, left in (("U6", 86.0), ("U7", 106.0)):
         fps[ref].SetOrientationDegrees(0)
         move_bbox_to(fps[ref], left=left, top=46)
-    explicit = {"J1", "J2", "J3", "J4", "U2", "U6", "U7", "H1", "H2", "H3", "H4"} | {f"U{9 + i}" for i in range(1, 7)} \
+    explicit = {"J1", "J2", "J3", "J4", "J7", "U2", "U6", "U7", "H1", "H2", "H3", "H4"} | {f"U{9 + i}" for i in range(1, 7)} \
         | {f"C{20 + i}" for i in range(1, 7)} | {f"R{20 + i}" for i in range(1, 7)}
     for fp in fps.values():
         fp.SetOrientationDegrees(fp.GetOrientationDegrees())

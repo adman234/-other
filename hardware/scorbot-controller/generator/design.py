@@ -86,8 +86,12 @@ CARRIER_ROW_SPACING = 12.7  # mm -- PLACEHOLDER
 # Plug-in modules on 0.1" headers. PIN ORDER IS A PLACEHOLDER until checked
 # against the module you buy (pololu.com / seller listings were unreachable).
 # ---------------------------------------------------------------------------
-BUCK_PINS = ["EN", "VIN", "GND", "VOUT"]  # Pololu D24V22F5 (5 V 2.5 A)
-ADS1115_PINS = ["VDD", "GND", "SCL", "SDA", "ADDR", "ALRT", "A0", "A1", "A2", "A3"]  # common ADS1115 breakout
+# DROK mini buck module (set to 5 V with its "5V" solder jumper). Its header
+# row is EN, IN+, IN-, OUT-, OUT+; the board socket takes the last four
+# (EN is left unconnected; floating = enabled on these modules).
+BUCK_PINS = ["IN+", "IN-", "OUT-", "OUT+"]
+# Adafruit #1085 ADS1115 breakout pin order (other sellers differ).
+ADS1115_PINS = ["VDD", "GND", "SCL", "SDA", "ADDR", "ALRT", "A0", "A1", "A2", "A3"]
 
 
 def carrier_pins():
@@ -133,16 +137,18 @@ def LED(ref, value, anode, cathode, group, pcb=None):
 
 
 # ---- Power input ---------------------------------------------------------
-part("J1", "Connector:Barrel_Jack", "12V in (5.5x2.1)",
-     "Connector_BarrelJack:BarrelJack_Horizontal",
+part("J1", "Connector:Barrel_Jack", "12V in (CUI PJ-102AH, 2.1 mm)",
+     "Connector_BarrelJack:BarrelJack_CUI_PJ-102AH_Horizontal",
      {1: "VIN_RAW", 2: "GND"}, "power", pcb=(9, 14, 0))
 part("J2", "Connector:Screw_Terminal_01x02", "12V in (alt)",
      "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",
      {1: "VIN_RAW", 2: "GND"}, "power", pcb=(5, 32, 90))
-part("F1", "Device:Fuse", "5A blade (mini)", "Fuse:Fuseholder_Blade_Mini_Keystone_3568",
+# Fuse is wired off-board: an inline fuse holder across the two screws of J7.
+SCREW2 = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
+part("J7", "Connector:Screw_Terminal_01x02", "FUSE (wire inline 5A fuse across)", SCREW2,
      {1: "VIN_RAW", 2: "VIN"}, "power", pcb=(28, 22, 90))
 # No reverse-polarity FET: a reversed supply forward-biases the unidirectional
-# TVS and blows F1. The driver carriers and buck module also protect themselves.
+# TVS and blows the external fuse on J7. The driver carriers and buck module also protect themselves.
 part("D1", "Device:D_TVS", "SMBJ18A (unidirectional)", "Diode_SMD:D_SMB",
      {1: "VIN", 2: "GND"}, "power", pcb=(40, 44, 90))
 CP("C1", "1000uF 25V low-ESR", "VIN", "GND", "power",
@@ -150,8 +156,7 @@ CP("C1", "1000uF 25V low-ESR", "VIN", "GND", "power",
 C("C2", "100nF 50V", "VIN", "GND", "power", pcb=(26, 58, 0))
 
 # ---- E-stop (no relay): NC contacts in series with the motor rail --------
-part("J3", "Connector:Screw_Terminal_01x02", "E-STOP (NC, in VM line)",
-     "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",
+part("J3", "Connector:Screw_Terminal_01x02", "E-STOP (NC, in VM line)", SCREW2,
      {1: "VIN", 2: "VM"}, "power", pcb=(6, 74, 90))
 R("R2", "10k (VM bleeder)", "VM", "GND", "power", fp=R1206, pcb=(22, 70, 0))
 R("R3", "22k", "VM", "VM_SENSE", "power", pcb=(22, 74, 0))
@@ -162,9 +167,9 @@ C("C3", "100nF", "VM_ADC", "GND", "power", pcb=(30, 80, 0))
 R("R7", "4.7k", "VM", "LED_VM", "power", pcb=(38, 70, 0))
 LED("D3", "VM on (green)", "LED_VM", "GND", "power", pcb=(38, 74, 0))
 
-# ---- 5 V: Pololu D24V22F5 plug-in buck module ------------------------------
-part("U1", "Scorbot:Pololu_D24V22F5", "Pololu D24V22F5 (5V 2.5A)", "Scorbot:Pololu_D24V22F5_Socket",
-     {i + 1: {"EN": None, "VIN": "VIN", "GND": "GND", "VOUT": "+5V"}[n] for i, n in enumerate(BUCK_PINS)},
+# ---- 5 V: plug-in DROK buck module (4-pin socket) ------------------------------
+part("U1", "Scorbot:Buck_Module_4pin", "DROK mini buck, set to 5V", "Scorbot:Buck_Module_4pin_Socket",
+     {i + 1: {"IN+": "VIN", "IN-": "GND", "OUT-": "GND", "OUT+": "+5V"}[n] for i, n in enumerate(BUCK_PINS)},
      "buck", pcb=(36, 58, 0))
 R("R9", "1k", "+5V", "LED_5V", "buck", pcb=(38, 80, 0))
 LED("D4", "5V (green)", "LED_5V", "GND", "buck", pcb=(38, 83, 0))
@@ -182,7 +187,7 @@ esp_net = {
     "IO12": "NSLEEP", "IO21": "SDA", "IO22": "SCL", "IO5": "EXP_INT",
     "IO2": "LED_STATUS",
 }
-part("U2", "Scorbot:ESP32_DevKitC_V4", "ESP32-DevKitC-32E (38-pin)",
+part("U2", "Scorbot:ESP32_DevKitC_V4", "ESP32-DevKitC (WROOM-32D or -32E, 38-pin)",
      "Scorbot:ESP32_DevKitC_V4_Socket",
      {i + 1: esp_net.get(n) for i, n in enumerate(DEVKIT_PINS)},
      "mcu", pcb=(14, 98, 270))

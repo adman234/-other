@@ -53,7 +53,7 @@ def devkit_symbol():
     names = D.DEVKIT_PINS
     left = [(i + 1, n, typ(n)) for i, n in enumerate(names[:19])]
     right = [(i + 20, n, typ(n)) for i, n in enumerate(names[19:])]
-    return symbol("ESP32_DevKitC_V4", "U", "ESP32-DevKitC-32E", "Scorbot:ESP32_DevKitC_V4_Socket",
+    return symbol("ESP32_DevKitC_V4", "U", "ESP32-DevKitC (WROOM-32D/32E)", "Scorbot:ESP32_DevKitC_V4_Socket",
                   left, right, width=15.24,
                   desc="ESP32-DevKitC V4, 38 pin, in two 1x19 female headers. Pin 1-19 = J2, 20-38 = J3")
 
@@ -88,9 +88,9 @@ def module_symbol(name, value, footprint, pins, types, desc):
 
 
 def buck_symbol():
-    return module_symbol("Pololu_D24V22F5", "Pololu D24V22F5", "Scorbot:Pololu_D24V22F5_Socket",
-                         D.BUCK_PINS, {"VIN": "power_in", "GND": "power_in", "VOUT": "power_out", "EN": "input"},
-                         "Pololu D24V22F5 5V 2.5A step-down module on 0.1in header. PIN ORDER IS A PLACEHOLDER")
+    return module_symbol("Buck_Module_4pin", "Buck module", "Scorbot:Buck_Module_4pin_Socket",
+                         D.BUCK_PINS, {"IN+": "power_in", "IN-": "power_in", "OUT-": "power_in", "OUT+": "power_out"},
+                         "4-pin socket (IN+, IN-, OUT-, OUT+) for a DROK mini buck module set to 5 V")
 
 
 def ads1115_symbol():
@@ -218,7 +218,7 @@ def db50_fp():
     write_fp(name, L)
 
 
-def single_row_fp(name, pins, descr, body_w=6.0):
+def single_row_fp(name, pins, descr, body_w=6.0, before=0, verified=False):
     """1xN female 0.1in header socket for a plug-in module, pin names on F.Fab."""
     n = len(pins)
     L = fp_header(name, descr, "module socket 2.54mm", (0, -3.0), (0, n * 2.54 + 1))
@@ -226,11 +226,13 @@ def single_row_fp(name, pins, descr, body_w=6.0):
         L.append(pad(k + 1, 0, k * 2.54, first=(k == 0)))
         L.append(fp_text(pname, 3.0, k * 2.54, "F.Fab", 0.6))
     y2 = (n - 1) * 2.54 + 1.27
+    y1 = -1.5 - before * 2.54  # module may hang past the first socket pin
     L.append(fp_rect(-1.27, -1.27, 1.27, y2, "F.SilkS", 0.12))
-    L.append(fp_text("PINOUT UNVERIFIED", 0, -1.9 - 0.6, "F.Fab", 0.6))
+    if not verified:
+        L.append(fp_text("PINOUT UNVERIFIED", 0, y1 - 1.0, "F.Fab", 0.6))
     # module body outline (approximate) so plugged-in modules can't collide
-    L.append(fp_rect(-1.5, -1.5, body_w, y2 + 0.25, "F.Fab", 0.1))
-    L.append(fp_rect(-1.77, -1.77, body_w + 0.5, y2 + 0.5, "F.CrtYd", 0.05))
+    L.append(fp_rect(-1.5, y1, body_w, y2 + 0.25, "F.Fab", 0.1))
+    L.append(fp_rect(-1.77, y1 - 0.27, body_w + 0.5, y2 + 0.5, "F.CrtYd", 0.05))
     write_fp(name, L)
 
 
@@ -239,10 +241,11 @@ def main():
     write_symbols()
     devkit_fp()
     carrier_fp()
-    single_row_fp("Pololu_D24V22F5_Socket", D.BUCK_PINS,
-                  "1x4 socket for Pololu D24V22F5. PLACEHOLDER pin order: check the module silkscreen", body_w=16.0)
+    single_row_fp("Buck_Module_4pin_Socket", D.BUCK_PINS,
+                  "1x4 socket (IN+, IN-, OUT-, OUT+) for a DROK mini buck; its EN pin hangs past pin 1 unconnected",
+                  body_w=22.0, before=1, verified=True)
     single_row_fp("ADS1115_Module_Socket", D.ADS1115_PINS,
-                  "1x10 socket for a generic ADS1115 breakout. Pin order varies by seller: check yours", body_w=17.0)
+                  "1x10 socket in Adafruit #1085 ADS1115 pin order. Other sellers differ", body_w=17.0, verified=True)
     db50_fp()
     print("library written to", os.path.normpath(LIB))
 
