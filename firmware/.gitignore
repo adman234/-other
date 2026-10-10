@@ -1,0 +1,9 @@
+build/
+managed_components/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+test/test_core
+test/sim_server
+test/screens/
+__pycache__/

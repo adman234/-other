@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scorbot ER-4u</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#f3f4f6;--panel:#ffffff;--panel2:#f8fafc;--ink:#111827;--ink2:#4b5563;--line:#e5e7eb;--accent:#2563eb;--ok:#15803d;--okbg:#dcfce7;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;--idle:#6b7280;--viewer:#eef2f7;--grid:#cbd5e1;--shadow:0 1px 2px rgba(0,0,0,.06)}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--panel:#171a21;--panel2:#1d2129;--ink:#e5e7eb;--ink2:#9aa3b2;--line:#2a2f3a;--accent:#60a5fa;--ok:#4ade80;--okbg:#14301f;--warn:#fbbf24;--warnbg:#3a2c0b;--bad:#f87171;--badbg:#3b1414;--idle:#9aa3b2;--viewer:#12151b;--grid:#2a3240;--shadow:none}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;touch-action:manipulation}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+button.small{padding:3px 8px;font-size:12px}
+input,select{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0}
+input[type=range]{padding:0;accent-color:var(--accent)}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0 8px 0 0;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:12px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--idle)}
+.ok .dot{background:var(--ok)}.warn .dot{background:var(--warn)}.bad .dot{background:var(--bad)}
+.spacer{flex:1}
+#stopBtn{font-weight:700;padding:8px 20px;letter-spacing:.04em}
+nav{display:flex;gap:4px;padding:8px 16px 0;overflow-x:auto}
+nav button{border-radius:8px 8px 0 0;border-bottom:none;background:transparent}
+nav button.on{background:var(--panel);border-color:var(--line);font-weight:600}
+main{padding:0 16px 24px}
+section.tab{display:none;background:var(--panel);border:1px solid var(--line);border-radius:0 10px 10px 10px;padding:16px}
+section.tab.on{display:block}
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:var(--shadow);min-width:0}
+.card h3{margin:0 0 4px;font-size:14px}
+.card p.hint{margin:0 0 10px;color:var(--ink2);font-size:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--ink2);font-weight:500;font-size:12px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;background:var(--panel);border:1px solid var(--line);color:var(--ink2)}
+.badge.pass{background:var(--okbg);color:var(--ok);border-color:transparent}
+.badge.warn{background:var(--warnbg);color:var(--warn);border-color:transparent}
+.badge.fail{background:var(--badbg);color:var(--bad);border-color:transparent}
+.badge.skipped{opacity:.7}
+#viewer{position:relative;background:var(--viewer);border:1px solid var(--line);border-radius:10px;overflow:hidden;height:min(62vh,560px);min-height:320px}
+#viewer canvas{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#viewer .overlay{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;pointer-events:none}
+#viewer .vbtns{position:absolute;right:8px;top:8px;display:flex;gap:4px}
+.joint{display:grid;grid-template-columns:104px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.joint:last-child{border-bottom:none}
+.jname{font-weight:600}.jname small{display:block;font-weight:400;color:var(--ink2);font-size:11px}
+.jval{font-variant-numeric:tabular-nums;font-size:18px;font-weight:600;text-align:right;min-width:86px}
+.jbar{position:relative;height:6px;background:var(--line);border-radius:3px;margin-top:6px}
+.jbar i{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;background:var(--accent)}
+.jbar b{position:absolute;top:-2px;width:2px;height:10px;background:var(--ink2);opacity:.6}
+.jog{display:flex;gap:4px}
+.jog button{width:42px;height:34px;font-size:16px;padding:0;user-select:none;-webkit-user-select:none}
+.jog button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sw{display:grid;grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:6px}
+.lamp{border:1px solid var(--line);border-radius:10px;padding:10px 4px;text-align:center;background:var(--panel);min-width:0}
+.lamp .bulb{width:28px;height:28px;border-radius:50%;margin:0 auto 6px;background:var(--line);transition:background .1s,box-shadow .1s}
+.lamp.on .bulb{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+.lamp .lbl{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.lamp .chk{font-size:11px;color:var(--ink2)}
+.meter{position:relative;height:10px;background:var(--line);border-radius:5px;overflow:hidden;min-width:80px}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.meter.duty i{left:50%}
+.meter .lim{position:absolute;top:0;bottom:0;width:2px;background:var(--bad)}
+.meter.center:after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--ink2)}
+.ticker{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink2)}
+.fault{display:none;margin:12px 16px 0;padding:10px 14px;border-radius:10px;background:var(--badbg);color:var(--bad);border:1px solid var(--bad);font-weight:600;align-items:center;gap:12px}
+.fault.on{display:flex}
+.banner{display:none;margin:12px 16px 0;padding:8px 14px;border-radius:10px;background:var(--warnbg);color:var(--warn);font-size:13px}
+.banner.on{display:block}
+.steps{counter-reset:s;margin:0;padding:0;list-style:none}
+.steps>li{counter-increment:s;position:relative;padding:0 0 16px 34px}
+.steps>li:before{content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps h4{margin:2px 0 6px;font-size:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv span:nth-child(odd){color:var(--ink2)}
+form.cfg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 12px}
+form.cfg label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink2)}
+.scroll{overflow-x:auto}
+.cfgtable input{width:76px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);padding:10px 16px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:90vw}
+#toast.on{opacity:.95}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<header>
+  <h1>Scorbot ER-4u</h1>
+  <span class="pill" id="pConn"><span class="dot"></span><span>connecting</span></span>
+  <span class="pill" id="pMode"><span class="dot"></span><span>mode</span></span>
+  <span class="pill" id="pVm"><span class="dot"></span><span>motor power</span></span>
+  <span class="pill" id="pHome"><span class="dot"></span><span>not homed</span></span>
+  <span class="spacer"></span>
+  <button id="enableBtn" class="primary">Enable</button>
+  <button id="stopBtn" class="danger" title="Stop all motion (Esc)">STOP</button>
+</header>
+<div class="fault" id="faultBar"><span id="faultText"></span><span class="spacer"></span><button id="resetBtn">Clear fault</button></div>
+<div class="banner" id="demoBar">Demo mode: no controller found, so this page is driving a simulated arm. Open it from the controller's IP to drive the real one.</div>
+<nav id="tabs">
+  <button data-tab="control" class="on">Control</button>
+  <button data-tab="test">Test</button>
+  <button data-tab="calib">Calibrate</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+<main>
+<!-- ======================= CONTROL ======================= -->
+<section class="tab on" id="tab-control">
+  <div class="grid2">
+    <div>
+      <div id="viewer"><canvas id="cv"></canvas>
+        <div class="vbtns"><button class="small" data-view="iso">3D</button><button class="small" data-view="side">Side</button><button class="small" data-view="top">Top</button></div>
+        <div class="overlay" id="tcp"></div></div>
+      <p class="muted" style="font-size:12px;margin:6px 2px 0">Drag to orbit, scroll or pinch to zoom. Solid = measured position, outline = target. Geometry is an estimate from the ER-4u manual; adjust it in Settings.</p>
+    </div>
+    <div>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <strong>Joints</strong>
+        <label class="row muted" style="font-size:12px">Speed <input type="range" id="speed" min="5" max="100" value="40" style="width:120px"><span id="speedVal">40%</span></label>
+      </div>
+      <div id="joints"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="homeAllBtn">Home all</button>
+        <button id="goZeroBtn">Go to 0 pose</button>
+        <button id="gripOpenBtn">Open gripper</button>
+        <button id="gripCloseBtn">Close gripper</button>
+      </div>
+      <p class="muted" style="font-size:12px">Hold a jog button to move; release to stop. Type a value and press Enter to move there.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= TEST ======================= -->
+<section class="tab" id="tab-test">
+  <div class="cards">
+    <div class="card">
+      <h3>System check</h3>
+      <p class="hint">Hardware the controller can see, plus the automatic self-test. The self-test pulses each motor forward then back and checks its encoder and current.</p>
+      <div class="kv" id="sysKv"></div>
+      <div class="row" style="margin-top:10px"><button id="selfTestBtn" class="primary">Run self-test</button><span class="muted" id="selfTestState"></span></div>
+      <div class="progress"><i id="selfTestProg"></i></div>
+    </div>
+    <div class="card">
+      <h3>Home switches</h3>
+      <p class="hint">Press each switch by hand, or jog each joint across it. Each lamp lights while pressed; the checklist ticks once it has been seen pressed and released.</p>
+      <div class="sw" id="swLamps"></div>
+      <div class="row" style="margin-top:10px"><button class="small" id="swReset">Reset checklist</button></div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h3>Motors, direction and current</h3>
+      <p class="hint">Test runs one motor open-loop: +duty for a moment, then -duty. Pass = encoder counts up then down. "Disagree" means the motor and encoder are wired opposite: press Flip. Use Invert on the Calibrate tab to choose which way is positive.</p>
+      <div class="scroll"><table id="motorTable"><thead><tr><th>Motor</th><th>Result</th><th class="num">+duty Δ</th><th class="num">-duty Δ</th><th class="num">Peak A</th><th>Live duty</th><th>Live current</th><th>Note</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h3>Encoders</h3>
+      <p class="hint">Disable the drivers, then turn each motor or joint by hand. Counts should change smoothly both ways; the range shows how far each one has moved since the last reset. Wrist motors A and B both move for pitch and roll.</p>
+      <div class="scroll"><table id="encTable"><thead><tr><th>Motor</th><th class="num">Counts</th><th class="num">Rate /s</th><th class="num">Range seen</th><th>Activity</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:10px"><button class="small" id="encReset">Reset ranges</button><button class="small" id="encDisable">Disable drivers (hand-turn)</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CALIBRATE ======================= -->
+<section class="tab" id="tab-calib">
+  <ol class="steps">
+    <li><h4>Home</h4>
+      <p class="muted" style="margin:0 0 8px">Each joint seeks its switch, creeps across it and zeroes on the far edge, always approached the same way. The gripper closes until it stalls. Order: shoulder, elbow, pitch, roll, gripper, base (base last; it swings).</p>
+      <div class="row" id="homeBtns"></div>
+    </li>
+    <li><h4>Measure travel</h4>
+      <p class="muted" style="margin:0 0 8px">Drives each joint slowly into both hard stops at reduced power, then returns home. The measured span against the manual's range gives counts per degree, the home angle and soft limits. <b>Watch the arm and keep a hand near STOP.</b> Wrist roll has no stops: use step 3.</p>
+      <div class="row" id="calBtns"></div>
+      <div class="scroll" style="margin-top:10px"><table id="calTable"><thead><tr><th>Joint</th><th>Result</th><th class="num">Counts min / max</th><th class="num">Measured /unit</th><th class="num">Current /unit</th><th class="num">Home at</th><th class="num">Soft limits</th><th>Note</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:8px"><button id="applyAllBtn" class="primary">Apply all results</button></div>
+    </li>
+    <li><h4>Wrist roll: one-turn method</h4>
+      <p class="muted" style="margin:0 0 8px">Put a mark on the gripper, press Start, jog roll exactly one full turn back to the mark, then press Done.</p>
+      <div class="row"><button id="rollStart">Start</button><button id="rollDone" disabled>Done (360°)</button><span class="muted" id="rollInfo"></span></div>
+    </li>
+    <li><h4>Directions and manual adjustments</h4>
+      <div class="scroll"><table id="adjTable"><thead><tr><th>Joint</th><th class="num">Position</th><th class="num">Counts /unit</th><th></th></tr></thead><tbody></tbody></table></div>
+    </li>
+  </ol>
+</section>
+
+<!-- ======================= SETTINGS ======================= -->
+<section class="tab" id="tab-settings">
+  <div class="cards">
+    <div class="card">
+      <h3>WiFi</h3>
+      <p class="hint">The controller joins this network; if it can't within 60 s it opens its own access point (Scorbot-XXXX, 192.168.4.1). Saving reboots the controller.</p>
+      <form class="cfg" id="wifiForm" onsubmit="return false">
+        <label>Network (SSID)<input name="ssid" autocomplete="off"></label>
+        <label>Password<input name="password" type="password" placeholder="unchanged"></label>
+        <label>Access-point password<input name="ap_password" type="password" placeholder="unchanged"></label>
+        <label>Hostname<input name="hostname" placeholder="scorbot"></label>
+        <label>API key (optional)<input name="api_key" type="password" placeholder="unchanged"></label>
+      </form>
+      <div class="row" style="margin-top:10px"><button id="wifiSave" class="primary">Save and reboot</button><span class="muted" id="netInfo"></span></div>
+      <div class="row" style="margin-top:10px"><label class="muted" style="font-size:12px">API key used by this browser <input id="myKey" type="password" style="width:140px"></label></div>
+    </div>
+    <div class="card">
+      <h3>3D model geometry</h3>
+      <p class="hint">Estimates from the ER-4u manual (610 mm reach). Stored in this browser only. "Absolute" means the joint angle is measured from horizontal rather than from the previous link (the ER arms' belt drives keep the forearm and wrist level as the shoulder moves).</p>
+      <form class="cfg" id="geoForm" onsubmit="return false"></form>
+      <div class="row" style="margin-top:10px"><button id="geoReset" class="small">Reset to estimates</button></div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h3>Joint settings</h3>
+      <div class="scroll"><table class="cfgtable" id="jointCfg"></table></div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h3>Motor control (PID)</h3>
+      <p class="hint">kp/ki/kd act on encoder counts. min duty is the static-friction offset (the reference ER III build needed about 0.8).</p>
+      <div class="scroll"><table class="cfgtable" id="motorCfg"></table></div>
+    </div>
+    <div class="card">
+      <h3>Limits and tests</h3>
+      <form class="cfg" id="globCfg" onsubmit="return false"></form>
+    </div>
+    <div class="card">
+      <h3>Save, back up, restore</h3>
+      <div class="row"><button id="cfgSave" class="primary">Save settings</button><button id="cfgReload">Reload</button></div>
+      <div class="row" style="margin-top:10px"><button id="cfgExport">Download backup</button><label class="row"><button id="cfgImportBtn">Restore from file</button><input type="file" id="cfgImport" accept="application/json" hidden></label></div>
+      <div class="row" style="margin-top:10px"><button id="cfgDefaults">Factory defaults</button><button id="rebootBtn">Reboot controller</button></div>
+    </div>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------------------
+// constants
+// ---------------------------------------------------------------------------
+const JN = ["Base","Shoulder","Elbow","Wrist pitch","Wrist roll","Gripper"];
+const JU = ["°","°","°","°","°"," mm"];
+const MN = ["M1 base","M2 shoulder","M3 elbow","M4 wrist A","M5 wrist B","M6 gripper"];
+const $ = (s, el=document) => el.querySelector(s);
+const el = (tag, attrs={}, ...kids) => { const e=document.createElement(tag); for(const [k,v] of Object.entries(attrs)){ if(k==="class") e.className=v; else if(k.startsWith("on")) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v);} for(const k of kids) e.append(k); return e; };
+const fmt = (v,d=1) => (v===null||v===undefined||Number.isNaN(v)) ? "—" : Number(v).toFixed(d);
+let S = null;          // latest state
+let CFG = null;        // robot config
+let demo = null;       // MockRobot when no controller is reachable
+
+function toast(msg, ms=2600){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove("on"),ms); }
+
+// ---------------------------------------------------------------------------
+// connection: WebSocket for state + commands, REST for config
+// ---------------------------------------------------------------------------
+const Conn = {
+  ws:null, id:1, pending:new Map(), up:false,
+  key(){ try{ return localStorage.getItem("scorbot.key")||""; }catch(e){ return ""; } },
+  start(){
+    const q = new URLSearchParams(location.search);
+    if (q.has("demo") || location.protocol==="file:" || location.protocol==="blob:" || !location.host) return startDemo();
+    let firstFail = true;
+    const open = () => {
+      const ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
+      this.ws = ws;
+      ws.onopen = () => { this.up=true; firstFail=false; setConn(true); loadConfig(); };
+      ws.onmessage = ev => { let m; try{ m=JSON.parse(ev.data);}catch(e){return;} if(m.t==="state") onState(m); else if(m.t==="reply"&&this.pending.has(m.id)){ this.pending.get(m.id)(m); this.pending.delete(m.id);} };
+      ws.onclose = () => { this.up=false; setConn(false); if(firstFail && !demo){ startDemo(); return; } setTimeout(open, 1500); };
+    };
+    open();
+    setTimeout(()=>{ if(!this.up && !demo) { try{this.ws.close();}catch(e){} startDemo(); } }, 4000);
+  },
+  send(msg){
+    if (demo) return Promise.resolve(demo.handle(msg));
+    return new Promise(res => {
+      if (!this.ws || this.ws.readyState!==1) return res({ok:false,error:"not connected"});
+      const id = this.id++;
+      this.pending.set(id, res);
+      setTimeout(()=>{ if(this.pending.has(id)){ this.pending.delete(id); res({ok:false,error:"timeout"}); } }, 3000);
+      const k = this.key();
+      this.ws.send(JSON.stringify(Object.assign({id}, msg, k?{key:k}:{})));
+    });
+  },
+  async rest(path, body){
+    if (demo) return demo.rest(path, body);
+    const opt = body===undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json","X-API-Key":this.key()}, body:JSON.stringify(body)};
+    const r = await fetch(path, opt);
+    return r.json();
+  }
+};
+async function cmd(msg, okMsg){
+  const r = await Conn.send(msg);
+  if (!r.ok) toast("⚠ "+(r.error||"failed")); else if (okMsg) toast(okMsg);
+  return r;
+}
+function setConn(up){
+  const p=$("#pConn"); p.className="pill "+(up?"ok":"bad"); p.lastChild.textContent = demo?"demo (simulated)":(up?"connected":"offline");
+}
+function startDemo(){ if(demo) return; demo = new MockRobot(); $("#demoBar").classList.add("on"); setConn(true); loadConfig(); demo.run(onState); }
+
+// ---------------------------------------------------------------------------
+// state -> UI
+// ---------------------------------------------------------------------------
+let lastCounts=null, lastT=0, rates=[0,0,0,0,0,0];
+function onState(s){
+  const now = performance.now();
+  if (lastCounts && now>lastT) { const dt=(now-lastT)/1000; for(let m=0;m<6;m++) rates[m] = 0.7*rates[m] + 0.3*(s.counts[m]-lastCounts[m])/dt; }
+  lastCounts = s.counts.slice(); lastT = now;
+  S = s;
+  scheduleRender();
+}
+let rq=false;
+function scheduleRender(){ if(rq) return; rq=true; requestAnimationFrame(()=>{ rq=false; render(); }); }
+
+function pill(id, cls, text){ const p=$(id); p.className="pill "+cls; p.lastChild.textContent=text; }
+
+function render(){
+  if (!S) return;
+  const m = S.mode;
+  pill("#pMode", m==="fault"||m==="estop"?"bad":(m==="disabled"?"":"ok"), m + (S.phase?" · "+S.phase:"") + (S.busy>=0 && (m==="homing"||m==="calibrating")?" · "+JN[S.busy]:"") + (S.busy>=0 && m==="test"?" · "+MN[S.busy]:""));
+  pill("#pVm", S.vm_ok?"ok":"bad", S.vm_ok ? "motor power "+(S.vm!=null?fmt(S.vm,1)+" V":"on") : "motor power off");
+  const nh = S.homed.filter(Boolean).length;
+  pill("#pHome", nh===6?"ok":"warn", nh===6?"homed":`homed ${nh}/6`);
+  const eb=$("#enableBtn"); eb.textContent = S.enabled?"Disable":"Enable"; eb.className = S.enabled?"":"primary";
+  const fb=$("#faultBar"); const faulted = m==="fault"||m==="estop";
+  fb.classList.toggle("on", faulted); $("#faultText").textContent = (m==="estop"?"E-STOP: ":"FAULT: ")+(S.fault||"");
+  renderJoints(); renderTest(); renderCalib(); viewer.draw();
+}
+
+// ---------------------------------------------------------------------------
+// control tab
+// ---------------------------------------------------------------------------
+const jointRows=[];
+function buildJoints(){
+  const box=$("#joints");
+  for(let j=0;j<6;j++){
+    const val = el("div",{class:"jval"},"—");
+    const bar = el("div",{class:"jbar"}, el("b"), el("i"));
+    const inp = el("input",{type:"number",step:"1",style:"width:72px",title:"target; Enter to move"});
+    inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ const v=parseFloat(inp.value); if(!Number.isNaN(v)) moveJoint(j,v); }});
+    const minus = el("button",{title:"jog −"},"−"), plus=el("button",{title:"jog +"},"+");
+    holdJog(minus, j, -1); holdJog(plus, j, 1);
+    const row = el("div",{class:"joint"},
+      el("div",{class:"jname"}, JN[j], el("small",{},"")),
+      el("div",{}, el("div",{class:"row",style:"justify-content:space-between"}, inp, val), bar),
+      el("div",{class:"jog"}, minus, plus));
+    box.append(row);
+    jointRows.push({row,val,bar,inp,small:row.querySelector("small"),btns:[minus,plus]});
+  }
+}
+function holdJog(btn, j, dir){
+  let timer=null;
+  const send = () => Conn.send({cmd:"jog", joint:j, speed:dir*speedFrac()});
+  const start = e => { e.preventDefault(); if(timer) return; btn.classList.add("active"); send().then(r=>{ if(!r.ok) toast("⚠ "+r.error); }); timer=setInterval(send,100); };
+  const stop = () => { if(!timer) return; clearInterval(timer); timer=null; btn.classList.remove("active"); Conn.send({cmd:"jog", joint:j, speed:0}); };
+  btn.addEventListener("pointerdown", start); ["pointerup","pointerleave","pointercancel"].forEach(ev=>btn.addEventListener(ev, stop));
+}
+function speedFrac(){ return parseInt($("#speed").value)/100; }
+function moveJoint(j, v){ const pos=[null,null,null,null,null,null]; pos[j]=v; cmd({cmd:"move",pos,speed:speedFrac()}); }
+function jointLimits(j){
+  const jc = CFG && CFG.joints[j];
+  if(!jc) return [-180,180];
+  return jc.continuous ? [-360,360] : [jc.spec_min, jc.spec_max];
+}
+function renderJoints(){
+  for(let j=0;j<6;j++){
+    const r=jointRows[j]; if(!r) continue;
+    r.val.textContent = fmt(S.pos[j],1)+JU[j];
+    const [lo,hi]=jointLimits(j); const pct = v => Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+    r.bar.querySelector("i").style.left = `calc(${pct(S.pos[j])}% - 1px)`;
+    r.bar.querySelector("b").style.left = `calc(${pct(S.tgt[j])}% - 1px)`;
+    const cal = S.calibrated && S.calibrated[j];
+    r.small.textContent = (S.homed[j]?"homed":"not homed") + (cal?"":" · scale est.");
+    r.small.style.color = S.homed[j] ? "" : "var(--warn)";
+    if (document.activeElement!==r.inp) r.inp.placeholder = fmt(S.tgt[j],1);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// test tab
+// ---------------------------------------------------------------------------
+let motorRows=[], encRows=[], lamps=[];
+function buildTest(){
+  const sw=$("#swLamps");
+  for(let i=0;i<5;i++){ const l=el("div",{class:"lamp"}, el("div",{class:"bulb"}), el("div",{class:"lbl"},JN[i]), el("div",{class:"chk"},"")); sw.append(l); lamps.push(l); }
+  const tb=$("#motorTable tbody");
+  for(let m=0;m<6;m++){
+    const r={res:el("span",{class:"badge"},"—"), f:el("td",{class:"num"}), b:el("td",{class:"num"}), i:el("td",{class:"num"}),
+      duty:el("div",{class:"meter duty center"},el("i")), cur:el("div",{class:"meter"},el("i"),el("span",{class:"lim"})), note:el("td",{class:"muted"})};
+    const test=el("button",{class:"small",onclick:()=>cmd({cmd:"test_motor",motor:m})},"Test");
+    const flip=el("button",{class:"small",title:"swap motor polarity in software",onclick:()=>cmd({cmd:"flip_motor",motor:m},"Flipped "+MN[m]+" — test again")},"Flip");
+    tb.append(el("tr",{}, el("td",{},MN[m]), el("td",{},r.res), r.f, r.b, r.i, el("td",{},r.duty), el("td",{},r.cur), r.note, el("td",{},el("div",{class:"row"},test,flip))));
+    motorRows.push(r);
+  }
+  const et=$("#encTable tbody");
+  for(let m=0;m<6;m++){
+    const r={c:el("td",{class:"num ticker"}), rate:el("td",{class:"num ticker"}), range:el("td",{class:"num ticker"}), act:el("div",{class:"meter duty center"},el("i")), st:el("span",{class:"badge"},"—")};
+    et.append(el("tr",{}, el("td",{},MN[m]), r.c, r.rate, r.range, el("td",{},r.act), el("td",{},r.st)));
+    encRows.push(r);
+  }
+  $("#selfTestBtn").onclick = async ()=>{ if(!S.enabled){ const r=await cmd({cmd:"enable"}); if(!r.ok) return; } cmd({cmd:"self_test"}); };
+  $("#swReset").onclick = ()=>cmd({cmd:"reset_switch_test"});
+  $("#encReset").onclick = ()=>cmd({cmd:"reset_encoder_test"});
+  $("#encDisable").onclick = ()=>cmd({cmd:"disable"},"Drivers off: turn the motors by hand");
+}
+function setBadge(b, r){ b.className="badge "+(r||""); b.textContent = r==="pending"?"—":r; }
+function renderTest(){
+  const hw=S.hw||{};
+  const kv=$("#sysKv"); kv.replaceChildren();
+  const item=(k,ok,text)=>{ kv.append(el("span",{},k)); kv.append(el("span",{}, el("span",{class:"badge "+(ok===true?"pass":ok===false?"fail":"")}, ok===true?"ok":ok===false?"missing":"—"), " ", text||"")); };
+  item("I/O expander (TCA9555)", hw.expander);
+  item("Current ADC #1 (0x48)", hw.adc0, "motors 1-4");
+  item("Current ADC #2 (0x49)", hw.adc1, "motors 5-6, VM");
+  item("Motor power (VM)", S.vm_ok, S.vm!=null?fmt(S.vm,1)+" V":"");
+  item("Driver fault line", !S.drv_fault, S.drv_fault?"a driver reports a fault":"clear");
+  item("Network", hw.ip?true:null, (hw.net||"")+" "+(hw.ip||"")+(hw.ssid?" ("+hw.ssid+")":""));
+  const testing = S.mode==="test";
+  const done = S.mtest.filter(t=>t.r!=="pending").length;
+  $("#selfTestProg").style.width = (testing? (done/6*100):0)+"%";
+  $("#selfTestState").textContent = testing ? `testing ${MN[S.busy]||""}…` : (done? `${S.mtest.filter(t=>t.r==="pass").length}/6 passed` : "");
+  for(let i=0;i<5;i++){ const l=lamps[i]; l.classList.toggle("on", S.sw[i]); l.lastChild.textContent = (S.sw_on[i]?"✓":"○")+" on  "+(S.sw_off[i]&&S.sw_on[i]?"✓":"○")+" off"; }
+  const lim = (CFG && CFG.current_limit_a) || 2.5, full = 3.0;
+  for(let m=0;m<6;m++){
+    const r=motorRows[m], t=S.mtest[m];
+    setBadge(r.res, t.r); r.f.textContent = t.r==="pending"?"":t.fwd; r.b.textContent = t.r==="pending"?"":t.rev; r.i.textContent = t.r==="pending"?"":fmt(t.i,2); r.note.textContent=t.note;
+    const d=S.duty[m]||0; const di=r.duty.firstChild; di.style.left=(d>=0?50:50+d*50)+"%"; di.style.width=Math.abs(d)*50+"%";
+    const c=S.cur[m]; const ci=r.cur.firstChild; ci.style.width = (c==null?0:Math.min(100,c/full*100))+"%"; ci.style.background = c!=null&&c>lim?"var(--bad)":"var(--accent)";
+    r.cur.lastChild.style.left = (lim/full*100)+"%"; r.cur.title = c==null?"no ADC":fmt(c,2)+" A";
+    const er=encRows[m]; er.c.textContent=S.counts[m]; er.rate.textContent=fmt(Math.abs(rates[m])<0.5?0:rates[m],0);
+    const span=S.emax[m]-S.emin[m]; er.range.textContent = span;
+    const a=Math.max(-1,Math.min(1,rates[m]/2000)); const ai=er.act.firstChild; ai.style.left=(a>=0?50:50+a*50)+"%"; ai.style.width=Math.abs(a)*50+"%";
+    setBadge(er.st, span>50?"pass":""); er.st.textContent = span>50?"moved":"waiting";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// calibrate tab
+// ---------------------------------------------------------------------------
+let calRows=[], adjRows=[], rollStartCounts=null;
+function buildCalib(){
+  const hb=$("#homeBtns"); hb.append(el("button",{class:"primary",onclick:()=>runJob("home",-1)},"Home all"));
+  JN.forEach((n,j)=>hb.append(el("button",{onclick:()=>runJob("home",j)},n)));
+  const cb=$("#calBtns"); cb.append(el("button",{class:"primary",onclick:()=>{ if(confirm("Drive every joint (except roll) into both hard stops? Keep clear of the arm.")) runJob("calibrate",-1); }},"Measure all"));
+  JN.forEach((n,j)=>{ if(j!==4) cb.append(el("button",{onclick:()=>runJob("calibrate",j)},n)); });
+  const tb=$("#calTable tbody");
+  for(let j=0;j<6;j++){
+    const r={res:el("span",{class:"badge"},"—"), mm:el("td",{class:"num"}), meas:el("td",{class:"num"}), cur:el("td",{class:"num"}), home:el("td",{class:"num"}), soft:el("td",{class:"num"}), note:el("td",{class:"muted"}),
+      apply:el("button",{class:"small",onclick:()=>cmd({cmd:"apply_calibration",joint:j},"Applied "+JN[j]).then(loadConfig)},"Apply")};
+    tb.append(el("tr",{}, el("td",{},JN[j]), el("td",{},r.res), r.mm, r.meas, r.cur, r.home, r.soft, r.note, el("td",{},r.apply)));
+    calRows.push(r);
+  }
+  $("#applyAllBtn").onclick = ()=>cmd({cmd:"apply_calibration",joint:-1},"Applied all measured joints").then(loadConfig);
+  $("#rollStart").onclick = ()=>{ rollStartCounts = S.counts.slice(); $("#rollDone").disabled=false; $("#rollInfo").textContent="Now jog roll one full turn…"; };
+  $("#rollDone").onclick = ()=>{
+    if(!rollStartCounts) return;
+    const roll0 = 0.5*(rollStartCounts[3]-rollStartCounts[4]), roll1 = 0.5*(S.counts[3]-S.counts[4]);
+    const cpu = Math.abs(roll1-roll0)/360;
+    if (cpu<1){ toast("Roll barely moved: jog it a full turn first"); return; }
+    cmd({cmd:"set_cpu",joint:4,value:cpu},`Roll set to ${fmt(cpu,2)} counts/°`).then(loadConfig);
+    $("#rollDone").disabled=true; $("#rollInfo").textContent=`${fmt(cpu,2)} counts per degree`; rollStartCounts=null;
+  };
+  const at=$("#adjTable tbody");
+  for(let j=0;j<6;j++){
+    const r={pos:el("td",{class:"num"}), cpu:el("input",{type:"number",step:"0.1",style:"width:90px"})};
+    r.cpu.addEventListener("change",()=>cmd({cmd:"set_cpu",joint:j,value:parseFloat(r.cpu.value)},"Updated").then(loadConfig));
+    at.append(el("tr",{}, el("td",{},JN[j]), r.pos, el("td",{class:"num"},r.cpu),
+      el("td",{}, el("div",{class:"row"},
+        el("button",{class:"small",title:"swap which way is positive (flips encoder and motor together)",onclick:()=>cmd({cmd:"invert_joint",joint:j},"Inverted "+JN[j]+": re-home it").then(loadConfig)},"Invert direction"),
+        el("button",{class:"small",title:"treat the current position as the home angle",onclick:()=>cmd({cmd:"zero_here",joint:j},"Zeroed "+JN[j])},"Set home here")))));
+    adjRows.push(r);
+  }
+}
+async function runJob(kind, j){
+  if(!S.enabled){ const r=await cmd({cmd:"enable"}); if(!r.ok) return; }
+  cmd({cmd:kind, joint:j});
+}
+function renderCalib(){
+  for(let j=0;j<6;j++){
+    const c=S.cal[j], r=calRows[j]; if(!r) continue;
+    setBadge(r.res, c.r);
+    const has = c.r==="pass"||c.r==="warn";
+    r.mm.textContent = has? `${c.min} / ${c.max}`:"";
+    r.meas.textContent = has? fmt(c.cpu,2):"";
+    r.cur.textContent = CFG? fmt(CFG.joints[j].counts_per_unit,2)+(CFG.joints[j].cpu_calibrated?"":" (est)") : "";
+    r.home.textContent = has? fmt(c.home,1)+JU[j]:"";
+    r.soft.textContent = has? `${fmt(c.smin,0)} … ${fmt(c.smax,0)}`:"";
+    r.note.textContent = c.note; r.apply.disabled=!has;
+    const a=adjRows[j]; a.pos.textContent = fmt(S.pos[j],1)+JU[j];
+    if (CFG && document.activeElement!==a.cpu) a.cpu.value = fmt(CFG.joints[j].counts_per_unit,2);
+  }
+  const busy = S.mode==="homing"||S.mode==="calibrating"||S.mode==="test";
+  document.querySelectorAll("#homeBtns button,#calBtns button,#selfTestBtn").forEach(b=>b.disabled=busy);
+}
+
+// ---------------------------------------------------------------------------
+// settings tab
+// ---------------------------------------------------------------------------
+const JCOLS=[["counts_per_unit","counts/unit",0.1],["home_pos","home at",0.1],["soft_min","soft min",1],["soft_max","soft max",1],["vmax","max speed /s",1],["amax","accel /s²",10],["home_speed","home speed /s",0.5],["follow_err","follow err",0.5],["stall_ms","stall ms",10],["home_dir","home dir (±1)",2]];
+const MCOLS=[["kp","kp",0.0005],["ki","ki",0.0001],["kd","kd",0.00001],["i_zone","i zone",10],["min_duty","min duty",0.05],["max_duty","max duty",0.05],["motor_dir","motor dir",2],["enc_dir","enc dir",2]];
+const GCOLS=[["current_limit_a","current trip (A)",0.1],["calib_duty","calibration duty cap",0.05],["test_duty","motor test duty",0.05],["test_ms","motor test pulse (ms)",50],["gripper_open_mm","gripper open after home (mm)",1],["jog_timeout_ms","jog timeout (ms)",50],["roll_ratio","roll ratio",0.01]];
+function cfgTable(id, cols, rows, names){
+  const t=$(id); t.replaceChildren();
+  t.append(el("tr",{}, el("th",{},""), ...cols.map(c=>el("th",{class:"num"},c[1]))));
+  rows.forEach((row,i)=>t.append(el("tr",{}, el("td",{},names[i]), ...cols.map(([k,,step])=>{
+    const inp=el("input",{type:"number",step:String(step),value:String(row[k])}); inp.dataset.k=k; inp.dataset.i=i;
+    inp.addEventListener("change",()=>{ row[k]=parseFloat(inp.value); });
+    return el("td",{class:"num"},inp); }))));
+}
+function buildSettings(){
+  const g=$("#globCfg"); // filled in renderConfig
+  $("#cfgSave").onclick = async ()=>{ const r=await Conn.rest("/api/config", CFG); if(r && r.joints){ CFG=r; renderConfig(); toast("Settings saved"); } else toast("⚠ save failed"); };
+  $("#cfgReload").onclick = loadConfig;
+  $("#cfgExport").onclick = ()=>{ const a=el("a",{href:URL.createObjectURL(new Blob([JSON.stringify(CFG,null,2)],{type:"application/json"})),download:"scorbot-config.json"}); a.click(); };
+  $("#cfgImportBtn").onclick = ()=>$("#cfgImport").click();
+  $("#cfgImport").onchange = async e=>{ const f=e.target.files[0]; if(!f) return; try{ const j=JSON.parse(await f.text()); const r=await Conn.rest("/api/config", j); if(r.joints){ CFG=r; renderConfig(); toast("Restored"); } }catch(err){ toast("⚠ not a valid backup"); } };
+  $("#cfgDefaults").onclick = ()=>{ if(confirm("Reset all calibration and tuning to factory defaults?")) cmd({cmd:"defaults"},"Defaults restored").then(loadConfig); };
+  $("#rebootBtn").onclick = ()=>{ if(confirm("Reboot the controller?")) Conn.rest("/api/reboot",{}); };
+  $("#wifiSave").onclick = async ()=>{ const fd=new FormData($("#wifiForm")); const body={}; for(const [k,v] of fd.entries()) if(v!=="") body[k]=v; if(!confirm("Save WiFi settings and reboot?")) return; const r=await Conn.rest("/api/wifi", body); toast(r.ok?"Saved: controller is rebooting":"⚠ "+(r.error||"failed")); };
+  const mk=$("#myKey"); mk.value=Conn.key(); mk.onchange=()=>{ try{ localStorage.setItem("scorbot.key", mk.value); }catch(e){} toast("Key stored in this browser"); };
+  buildGeoForm();
+}
+async function loadConfig(){
+  try{
+    const c = await Conn.rest("/api/config"); if(c && c.joints){ CFG=c; renderConfig(); }
+    const w = await Conn.rest("/api/wifi"); if(w){ const f=$("#wifiForm"); f.ssid.value=w.ssid||""; f.hostname.value=w.hostname||""; }
+  }catch(e){ /* offline */ }
+}
+function renderConfig(){
+  if(!CFG) return;
+  cfgTable("#jointCfg", JCOLS, CFG.joints, JN);
+  cfgTable("#motorCfg", MCOLS, CFG.motors, MN);
+  const g=$("#globCfg"); g.replaceChildren();
+  for(const [k,label,step] of GCOLS){ const inp=el("input",{type:"number",step:String(step),value:String(CFG[k])}); inp.onchange=()=>{CFG[k]=parseFloat(inp.value);}; g.append(el("label",{},label,inp)); }
+  if (S) render();
+}
+
+// ---------------------------------------------------------------------------
+// 3D viewer: tiny canvas renderer (flat-shaded boxes, painter's algorithm)
+// ---------------------------------------------------------------------------
+const GEO_DEFAULT = {d1:349, a1:16, a2:221, a3:221, d5:145, sh_off:0, sh_sign:1, el_off:0, el_sign:1, el_abs:true, pi_off:0, pi_sign:1, pi_abs:true, base_sign:1};
+let GEO = Object.assign({}, GEO_DEFAULT);
+try{ Object.assign(GEO, JSON.parse(localStorage.getItem("scorbot.geo")||"{}")); }catch(e){}
+function buildGeoForm(){
+  const f=$("#geoForm"); f.replaceChildren();
+  const labels={d1:"Shoulder height (mm)",a1:"Shoulder offset (mm)",a2:"Upper arm (mm)",a3:"Forearm (mm)",d5:"Wrist to tip (mm)",sh_off:"Shoulder zero offset (°)",sh_sign:"Shoulder sign (±1)",el_off:"Elbow zero offset (°)",el_sign:"Elbow sign (±1)",el_abs:"Elbow angle absolute",pi_off:"Pitch zero offset (°)",pi_sign:"Pitch sign (±1)",pi_abs:"Pitch angle absolute",base_sign:"Base sign (±1)"};
+  for(const k of Object.keys(GEO_DEFAULT)){
+    const isBool = typeof GEO_DEFAULT[k]==="boolean";
+    const inp = isBool ? el("input",{type:"checkbox"}) : el("input",{type:"number",step:"1",value:String(GEO[k])});
+    if(isBool) inp.checked=GEO[k];
+    inp.onchange=()=>{ GEO[k]= isBool?inp.checked:parseFloat(inp.value); try{localStorage.setItem("scorbot.geo",JSON.stringify(GEO));}catch(e){} viewer.draw(); };
+    f.append(el("label",{},labels[k],inp));
+  }
+  $("#geoReset").onclick=()=>{ GEO=Object.assign({},GEO_DEFAULT); try{localStorage.removeItem("scorbot.geo");}catch(e){} buildGeoForm(); viewer.draw(); };
+}
+// Forward kinematics -> key points in mm (z up). Angles in degrees.
+// Shoulder angle 0 = upper arm vertical, + leans forward. Elbow/pitch 0 = level.
+function fk(q){
+  const r=Math.PI/180, g=GEO;
+  const th1 = g.base_sign*q[0]*r;
+  const s = (g.sh_sign*q[1] + g.sh_off)*r;                 // from vertical
+  const upElev = Math.PI/2 - s;                           // upper-arm elevation
+  const e3 = g.el_abs ? -(g.el_sign*q[2]+g.el_off)*r : upElev - Math.PI/2 - (g.el_sign*q[2]+g.el_off)*r; // forearm elevation
+  const e4 = g.pi_abs ? -(g.pi_sign*q[3]+g.pi_off)*r : e3 - (g.pi_sign*q[3]+g.pi_off)*r;              // tool elevation
+  const pts=[]; const P=(rad,z)=>[rad*Math.cos(th1), rad*Math.sin(th1), z];
+  const sh=[g.a1, g.d1];
+  const el_=[sh[0]+g.a2*Math.cos(upElev), sh[1]+g.a2*Math.sin(upElev)];
+  const wr=[el_[0]+g.a3*Math.cos(e3), el_[1]+g.a3*Math.sin(e3)];
+  const tip=[wr[0]+g.d5*Math.cos(e4), wr[1]+g.d5*Math.sin(e4)];
+  return {th1, e3, e4, base:[0,0,0], shoulder:P(...sh), elbow:P(...el_), wrist:P(...wr), tip:P(...tip), roll:q[4]*r, grip:Math.max(0,Math.min(75,q[5]||0))};
+}
+const V = { sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s],
+  dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2], cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+  norm:a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];} };
+// Box from p0 to p1 with width (side) w and height h; `side` is the width direction hint.
+function boxBetween(p0,p1,w,h,side){
+  const u=V.norm(V.sub(p1,p0)); let v=V.norm(V.cross(u, side||[0,0,1])); if(!isFinite(v[0])||Math.hypot(...v)<.5) v=V.norm(V.cross(u,[1,0,0]));
+  const n=V.norm(V.cross(v,u)); const hw=V.mul(v,w/2), hh=V.mul(n,h/2);
+  const c=[]; for(const p of [p0,p1]) for(const a of [-1,1]) for(const b of [-1,1]) c.push(V.add(V.add(p,V.mul(hw,a)),V.mul(hh,b)));
+  return [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]].map(f=>f.map(i=>c[i]));
+}
+function cylinder(r,h,z0,n=20){
+  const faces=[], top=[], bot=[];
+  for(let i=0;i<n;i++){ const a=i/n*2*Math.PI, b=(i+1)/n*2*Math.PI;
+    faces.push([[r*Math.cos(a),r*Math.sin(a),z0],[r*Math.cos(b),r*Math.sin(b),z0],[r*Math.cos(b),r*Math.sin(b),z0+h],[r*Math.cos(a),r*Math.sin(a),z0+h]]);
+    top.push([r*Math.cos(a),r*Math.sin(a),z0+h]); bot.unshift([r*Math.cos(a),r*Math.sin(a),z0]); }
+  faces.push(top, bot); return faces;
+}
+function armFaces(q){
+  const k=fk(q), side=[-Math.sin(k.th1), Math.cos(k.th1), 0];
+  const parts=[];
+  const add=(faces,color)=>faces.forEach(f=>parts.push({f,color}));
+  add(cylinder(120,40,0),"base");
+  add(boxBetween([0,0,40],[0,0,k.shoulder[2]-40],150,150,[Math.cos(k.th1),Math.sin(k.th1),0]),"body");
+  add(boxBetween(V.sub(k.shoulder,V.mul(side,0)),k.elbow,70,60,side),"link");
+  add(boxBetween(k.elbow,k.wrist,56,50,side),"link");
+  // wrist + gripper, rolled about the tool axis
+  const tdir=V.norm(V.sub(k.tip,k.wrist));
+  const cs=Math.cos(k.roll), sn=Math.sin(k.roll);
+  const n0=V.norm(V.cross(side,tdir)); const rs=V.add(V.mul(side,cs),V.mul(n0,sn)); // rolled side
+  const palm=V.add(k.wrist,V.mul(tdir,70));
+  add(boxBetween(k.wrist,palm,60,60,rs),"wrist");
+  const gap=k.grip/2+8;
+  for(const s of [-1,1]){ const o=V.mul(rs,s*gap); add(boxBetween(V.add(palm,o),V.add(k.tip,o),14,30,rs),"finger"); }
+  return {parts,k};
+}
+const viewer = {
+  cv:null, ctx:null, yaw:-0.75, pitch:0.42, dist:1700, target:[0,0,300], w:0,h:0, dpr:1,
+  init(){
+    this.cv=$("#cv"); this.ctx=this.cv.getContext("2d");
+    const ro=new ResizeObserver(()=>this.resize()); ro.observe(this.cv.parentElement); this.resize();
+    let drag=null, pinch=null; const pts=new Map();
+    this.cv.addEventListener("pointerdown",e=>{ this.cv.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); drag=[e.clientX,e.clientY]; });
+    this.cv.addEventListener("pointermove",e=>{ if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,[e.clientX,e.clientY]);
+      if(pts.size===2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); if(pinch) this.zoom(pinch/d); pinch=d; return; }
+      if(drag){ this.yaw-=(e.clientX-drag[0])*0.008; this.pitch=Math.max(-0.1,Math.min(1.5,this.pitch+(e.clientY-drag[1])*0.006)); drag=[e.clientX,e.clientY]; this.draw(); } });
+    const up=e=>{ pts.delete(e.pointerId); if(pts.size<2) pinch=null; if(!pts.size) drag=null; };
+    this.cv.addEventListener("pointerup",up); this.cv.addEventListener("pointercancel",up);
+    this.cv.addEventListener("wheel",e=>{ e.preventDefault(); this.zoom(Math.exp(e.deltaY*0.001)); },{passive:false});
+    document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{ const v=b.dataset.view; if(v==="side"){this.yaw=-Math.PI/2;this.pitch=0.02;} else if(v==="top"){this.yaw=-Math.PI/2;this.pitch=1.5;} else {this.yaw=-0.75;this.pitch=0.42;} this.draw(); });
+  },
+  zoom(f){ this.dist=Math.max(600,Math.min(5000,this.dist*f)); this.draw(); },
+  resize(){ const r=this.cv.parentElement.getBoundingClientRect(); this.dpr=window.devicePixelRatio||1; this.w=r.width; this.h=r.height; this.cv.width=r.width*this.dpr; this.cv.height=r.height*this.dpr; this.draw(); },
+  proj(p){ // world (z up) -> screen
+    const cy=Math.cos(this.yaw), sy=Math.sin(this.yaw), cp=Math.cos(this.pitch), sp=Math.sin(this.pitch);
+    const x=p[0]-this.target[0], y=p[1]-this.target[1], z=p[2]-this.target[2];
+    const xr=cy*x - sy*y, yr=sy*x + cy*y;            // yaw about z
+    const depth = yr*cp + z*sp, up = -yr*sp + z*cp;  // pitch
+    const d=this.dist - depth, f=Math.min(this.w*0.8,this.h)*1.25/ (d>50?d:50) * this.dist/1000;
+    return [this.w/2 + xr*f, this.h*0.55 - up*f, d];
+  },
+  colors(){ const cs=getComputedStyle(document.documentElement); const dark=matchMedia("(prefers-color-scheme: dark)").matches;
+    return {grid:cs.getPropertyValue("--grid").trim(), base:dark?[70,76,90]:[120,128,140], body:dark?[60,90,140]:[59,110,190], link:dark?[220,140,40]:[235,150,40], wrist:dark?[90,98,112]:[96,104,118], finger:dark?[150,156,166]:[60,66,76], ghost:cs.getPropertyValue("--accent").trim()}; },
+  draw(){
+    const ctx=this.ctx; if(!ctx||!this.w) return;
+    ctx.setTransform(this.dpr,0,0,this.dpr,0,0); ctx.clearRect(0,0,this.w,this.h);
+    const C=this.colors();
+    // floor grid, 100 mm squares
+    ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+    for(let i=-6;i<=6;i++){ for(const [a,b] of [[[i*100,-600,0],[i*100,600,0]],[[-600,i*100,0],[600,i*100,0]]]){ const p=this.proj(a), q=this.proj(b); ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke(); } }
+    // reach circle
+    ctx.beginPath(); for(let i=0;i<=64;i++){ const a=i/64*2*Math.PI, p=this.proj([610*Math.cos(a),610*Math.sin(a),0]); i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); } ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+    const x=this.proj([700,0,0]); ctx.fillStyle=C.grid; ctx.font="11px system-ui"; ctx.fillText("front (+x)",x[0]-24,x[1]+14);
+    const q = S ? S.pos : [0,0,0,0,0,40], t = S ? S.tgt : null;
+    // target ghost (wireframe)
+    if (t && S.pos.some((v,i)=>Math.abs(v-t[i])>0.5)) {
+      ctx.strokeStyle=C.ghost; ctx.globalAlpha=.55; ctx.lineWidth=1;
+      for(const {f} of armFaces(t).parts){ ctx.beginPath(); f.forEach((p,i)=>{ const s=this.proj(p); i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]); }); ctx.closePath(); ctx.stroke(); }
+      ctx.globalAlpha=1;
+    }
+    const {parts,k}=armFaces(q);
+    const light=V.norm([0.4,-0.5,0.8]);
+    const polys=parts.map(({f,color})=>{ const s=f.map(p=>this.proj(p)); const depth=s.reduce((a,p)=>a+p[2],0)/s.length;
+      const n=V.norm(V.cross(V.sub(f[1],f[0]),V.sub(f[2],f[0]))); return {s,depth,color,n}; });
+    polys.sort((a,b)=>b.depth-a.depth);
+    for(const p of polys){
+      const base=C[p.color]; const sh=0.55+0.45*Math.abs(V.dot(p.n,light));
+      ctx.fillStyle=`rgb(${base.map(c=>Math.round(c*sh)).join(",")})`; ctx.strokeStyle="rgba(0,0,0,.18)";
+      ctx.beginPath(); p.s.forEach((s,i)=>i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1])); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    const tip=k.tip; $("#tcp").textContent = `tip x ${fmt(tip[0],0)}  y ${fmt(tip[1],0)}  z ${fmt(tip[2],0)} mm · tool ${fmt(k.e4*180/Math.PI,0)}° from level`;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Demo: simulated controller speaking the same protocol (no hardware needed)
+// ---------------------------------------------------------------------------
+class MockRobot {
+  constructor(){
+    this.cfg = {current_limit_a:2.5,calib_duty:0.6,test_duty:0.7,test_ms:300,gripper_open_mm:40,jog_timeout_ms:300,roll_ratio:1,home_order:[1,2,3,4,5,0],
+      joints:[["base",-155,155,140],["shoulder",-35,130,140],["elbow",-130,130,140],["pitch",-130,130,75],["roll",-570,570,75],["gripper",0,75,100]].map(([name,lo,hi,cpu],i)=>({name,has_switch:i<5,home_dir:-1,spec_min:lo,spec_max:hi,continuous:i===4,counts_per_unit:cpu,cpu_calibrated:false,home_pos:0,soft_min:lo+2,soft_max:hi-2,vmax:[40,30,30,60,90,20][i],amax:180,home_speed:8,follow_err:8,stall_ms:150})),
+      motors:[0,1,2,3,4,5].map(()=>({motor_dir:1,enc_dir:1,kp:0.004,ki:0.0008,kd:0.00002,i_zone:300,min_duty:0.3,max_duty:1}))};
+    this.pos=[25,55,-35,-20,0,30]; this.tgt=this.pos.slice(); this.vel=[0,0,0,0,0,0]; this.jogUntil=[0,0,0,0,0,0];
+    this.homed=[false,false,false,false,false,false]; this.mode="disabled"; this.enabled=false; this.fault=""; this.phase=""; this.busy=-1;
+    this.jobs=[]; this.mtest=[0,1,2,3,4,5].map(()=>({r:"pending",fwd:0,rev:0,i:null,note:""}));
+    this.cal=[0,1,2,3,4,5].map(()=>({r:"pending",min:0,max:0,cpu:null,home:null,smin:null,smax:null,note:""}));
+    this.swOn=[0,0,0,0,0].map(()=>false); this.swOff=this.swOn.slice(); this.counts0=[3000,-1200,800,400,-300,1500];
+    this.emin=null; this.emax=null; this.duty=[0,0,0,0,0,0]; this.t=0; this.switchAt=[12,40,-20,5,33];
+  }
+  counts(){ const c=this.cfg.joints.map(j=>j.counts_per_unit); const jc=this.pos.map((p,i)=>p*c[i]); return [jc[0],jc[1],jc[2],jc[3]+jc[4],jc[3]-jc[4],jc[5]].map((v,i)=>Math.round(v+this.counts0[i])); }
+  sw(i){ return Math.abs(this.pos[i]-this.switchAt[i])<1.2; }
+  handle(m){
+    const ok={ok:true}, no=e=>({ok:false,error:e});
+    const busy=["homing","calibrating","test"].includes(this.mode);
+    const needEnabled=()=>!this.enabled?no("not enabled"):busy?no("busy ("+this.mode+")"):null;
+    switch(m.cmd){
+      case "enable": if(this.mode==="fault") return no("clear the fault first"); this.enabled=true; this.mode="idle"; this.tgt=this.pos.slice(); return ok;
+      case "disable": this.enabled=false; this.mode="disabled"; this.jobs=[]; this.phase=""; this.busy=-1; this.vel.fill(0); return ok;
+      case "stop": this.jobs=[]; this.phase=""; this.busy=-1; this.vel.fill(0); this.tgt=this.pos.slice(); if(this.enabled) this.mode="idle"; return ok;
+      case "reset": this.mode="disabled"; this.fault=""; return ok;
+      case "jog": { const e=needEnabled(); if(e) return e; const j=m.joint; this.vel[j]=m.speed*this.cfg.joints[j].vmax; this.jogUntil[j]=this.t+0.3; if(m.speed) this.mode="jog"; return ok; }
+      case "move": { const e=needEnabled(); if(e) return e; m.pos.forEach((v,j)=>{ if(v!==null&&v!==undefined){ const jc=this.cfg.joints[j]; this.tgt[j]=jc.continuous?v:Math.max(jc.soft_min,Math.min(jc.soft_max,v)); }}); this.moveSpeed=m.speed||0.5; this.mode="moving"; return ok; }
+      case "home": case "calibrate": { const e=needEnabled(); if(e) return e; const order=this.cfg.home_order.filter(j=>m.joint<0||j===m.joint).filter(j=>m.cmd==="home"||j!==4);
+        if(m.cmd==="calibrate"&&(m.joint===4||m.joint<0)) this.cal[4]={r:"skipped",note:"no hard stops: use the 360 deg method"};
+        this.mode=m.cmd==="home"?"homing":"calibrating"; this.jobs=order.flatMap(j=>m.cmd==="home"?[["home",j]]:[["home",j],["min",j],["max",j],["ret",j]]); if(m.cmd==="calibrate") order.forEach(j=>this.cal[j]={r:"pending"}); return ok; }
+      case "test_motor": { const e=needEnabled(); if(e) return e; this.mode="test"; this.jobs=[["test",m.motor]]; return ok; }
+      case "self_test": { const e=needEnabled(); if(e) return e; this.mode="test"; this.mtest.forEach((t,i)=>this.mtest[i]={r:"pending",fwd:0,rev:0,i:null,note:""}); this.jobs=[0,1,2,3,4,5].map(i=>["test",i]); return ok; }
+      case "apply_calibration": { const js=m.joint<0?[0,1,2,3,5]:[m.joint]; let any=false; for(const j of js){ const c=this.cal[j]; if(c.r==="pass"){ Object.assign(this.cfg.joints[j],{counts_per_unit:c.cpu,cpu_calibrated:true,home_pos:c.home,soft_min:c.smin,soft_max:c.smax}); any=true; } } return any?ok:no("no calibration result for that joint"); }
+      case "flip_motor": this.cfg.motors[m.motor].motor_dir*=-1; return ok;
+      case "invert_joint": this.cfg.motors[m.joint].enc_dir*=-1; this.homed[m.joint]=false; return ok;
+      case "zero_here": this.homed[m.joint]=true; return ok;
+      case "set_cpu": this.cfg.joints[m.joint].counts_per_unit=m.value; this.cfg.joints[m.joint].cpu_calibrated=true; return ok;
+      case "reset_switch_test": this.swOn.fill(false); this.swOff.fill(false); return ok;
+      case "reset_encoder_test": this.emin=this.emax=null; return ok;
+      case "defaults": return ok;
+    }
+    return no("unknown command");
+  }
+  rest(path, body){
+    if(path==="/api/config"){ if(body) Object.assign(this.cfg, JSON.parse(JSON.stringify(body))); return Promise.resolve(JSON.parse(JSON.stringify(this.cfg))); }
+    if(path==="/api/wifi") return Promise.resolve(body?{ok:true,note:"demo"}:{ssid:"",hostname:"scorbot"});
+    return Promise.resolve({ok:true});
+  }
+  step(dt){
+    this.t+=dt; this.duty.fill(0);
+    const J=this.cfg.joints;
+    const moveToward=(j,goal,speed)=>{ const d=goal-this.pos[j], s=speed*dt; if(Math.abs(d)<=s){ this.pos[j]=goal; return true; } this.pos[j]+=Math.sign(d)*s; this.duty[j<3?j:j===5?5:3]=Math.sign(d)*0.6; return false; };
+    if(this.jobs.length){
+      const [kind,j]=this.jobs[0];
+      this.busy=j; const spd=J[j]?J[j].home_speed*2.5:10;
+      if(kind==="test"){ this.phase=this.phase||"forward pulse"; this.jt=(this.jt||0)+dt; this.duty[j]=this.jt<.3?0.7:this.jt<.55?0:this.jt<.85?-0.7:0;
+        if(this.jt>1.1){ const f=Math.round(180+Math.random()*60), b=-Math.round(170+Math.random()*60); this.mtest[j]={r:"pass",fwd:f,rev:b,i:+(0.35+Math.random()*0.3).toFixed(2),note:"direction and encoder OK"}; this.jt=0; this.jobs.shift(); this.phase=""; } }
+      else if(kind==="home"){ this.phase=j===5?"closing to stop":"seeking switch"; const goal=j===5?0:this.switchAt[j]; if(moveToward(j,goal,spd)){ if(j===5){ this.homed[5]=true; this.jobs[0]=["open",5]; } else { this.homed[j]=true; this.pos[j]=0; this.switchAt[j]=0; this.tgt[j]=0; this.jobs.shift(); } } }
+      else if(kind==="open"){ this.phase="opening"; if(moveToward(5,this.cfg.gripper_open_mm,spd)){ this.tgt[5]=this.pos[5]; this.jobs.shift(); } }
+      else if(kind==="min"){ this.phase="to min stop"; if(moveToward(j,J[j].spec_min,spd)) this.jobs.shift(); }
+      else if(kind==="max"){ this.phase="to max stop"; if(moveToward(j,J[j].spec_max,spd)){ const cpu=+(J[j].counts_per_unit*(0.92+Math.random()*0.16)).toFixed(2); const span=Math.round(cpu*(J[j].spec_max-J[j].spec_min));
+          this.cal[j]={r:"pass",min:-Math.round(span/2),max:Math.round(span/2),cpu,home:0,smin:J[j].spec_min+3,smax:J[j].spec_max-3,note:`${cpu} counts/${j===5?"mm":"deg"}`}; this.jobs.shift(); } }
+      else if(kind==="ret"){ this.phase="returning home"; if(moveToward(j,0,spd)){ this.tgt[j]=0; this.jobs.shift(); } }
+      if(!this.jobs.length){ this.mode=this.enabled?"idle":"disabled"; this.phase=""; this.busy=-1; this.tgt=this.pos.slice(); }
+    } else if(this.enabled){
+      let moving=false;
+      for(let j=0;j<6;j++){
+        if(this.vel[j]){ if(this.t>this.jogUntil[j]) this.vel[j]=0; else { this.tgt[j]+=this.vel[j]*dt; const jc=J[j]; if(!jc.continuous) this.tgt[j]=Math.max(jc.spec_min,Math.min(jc.spec_max,this.tgt[j])); moving=true; } }
+        const d=this.tgt[j]-this.pos[j]; const v=J[j].vmax*(this.mode==="moving"?(this.moveSpeed||0.5):1)*dt*1.1;
+        if(Math.abs(d)>0.01){ this.pos[j]+=Math.max(-v,Math.min(v,d)); this.duty[j<3?j:j===5?5:3]=Math.max(-1,Math.min(1,d*0.2)); moving=true; }
+      }
+      if(!moving && (this.mode==="moving"||this.mode==="jog")) this.mode="idle";
+    }
+    for(let i=0;i<5;i++){ const on=this.sw(i); if(on) this.swOn[i]=true; else this.swOff[i]=true; }
+  }
+  state(){
+    const c=this.counts(); if(!this.emin){ this.emin=c.slice(); this.emax=c.slice(); } for(let i=0;i<6;i++){ this.emin[i]=Math.min(this.emin[i],c[i]); this.emax[i]=Math.max(this.emax[i],c[i]); }
+    return {t:"state",mode:this.mode,enabled:this.enabled,fault:this.fault,phase:this.phase,busy:this.busy,vm_ok:true,vm:12.1,drv_fault:false,
+      pos:this.pos.map(v=>+v.toFixed(2)),tgt:this.tgt.map(v=>+v.toFixed(2)),homed:this.homed.slice(),counts:c,duty:this.duty.slice(),cur:this.duty.map(d=>+(Math.abs(d)*0.6).toFixed(3)),
+      sw:[0,1,2,3,4].map(i=>this.sw(i)),sw_on:this.swOn.slice(),sw_off:this.swOff.slice(),emin:this.emin.slice(),emax:this.emax.slice(),calibrated:this.cfg.joints.map(j=>j.cpu_calibrated),
+      mtest:this.mtest.map(t=>Object.assign({},t)),cal:this.cal.map(x=>Object.assign({r:"pending",min:0,max:0,cpu:null,home:null,smin:null,smax:null,note:""},x)),
+      hw:{expander:true,adc0:true,adc1:true,net:"demo",ip:"",ssid:"",rssi:0,uptime:Math.round(this.t)}};
+  }
+  run(cb){ setInterval(()=>{ for(let i=0;i<5;i++) this.step(0.01); cb(this.state()); }, 50); }
+}
+
+// ---------------------------------------------------------------------------
+// wiring
+// ---------------------------------------------------------------------------
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("on",s.id==="tab-"+b.dataset.tab));
+  try{ localStorage.setItem("scorbot.tab", b.dataset.tab); }catch(e){}
+  if(b.dataset.tab==="control") viewer.resize();
+});
+$("#enableBtn").onclick = ()=>cmd({cmd: S&&S.enabled?"disable":"enable"});
+$("#stopBtn").onclick = ()=>cmd({cmd:"stop"},"Stopped");
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") cmd({cmd:"stop"},"Stopped"); });
+$("#resetBtn").onclick = ()=>cmd({cmd:"reset"},"Fault cleared: Enable to continue");
+$("#homeAllBtn").onclick = ()=>runJob("home",-1);
+$("#goZeroBtn").onclick = ()=>cmd({cmd:"move",pos:[0,0,0,0,null,null],speed:speedFrac()});
+$("#gripOpenBtn").onclick = ()=>moveJoint(5, (CFG&&CFG.gripper_open_mm)||40);
+$("#gripCloseBtn").onclick = ()=>moveJoint(5, 0);
+$("#speed").oninput = e=>$("#speedVal").textContent=e.target.value+"%";
+buildJoints(); buildTest(); buildCalib(); buildSettings(); viewer.init();
+try{ const t=localStorage.getItem("scorbot.tab"); if(t){ const b=document.querySelector(`#tabs [data-tab="${t}"]`); if(b) b.click(); } }catch(e){}
+Conn.start();
+</script>
+</body>
+</html>
