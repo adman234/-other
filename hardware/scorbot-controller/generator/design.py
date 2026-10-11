@@ -140,12 +140,17 @@ def LED(ref, value, anode, cathode, group, pcb=None):
 part("J1", "Connector:Barrel_Jack", "12V in (CUI PJ-102AH, 2.1 mm)",
      "Connector_BarrelJack:BarrelJack_CUI_PJ-102AH_Horizontal",
      {1: "VIN_RAW", 2: "GND"}, "power", pcb=(9, 14, 0))
-part("J2", "Connector:Screw_Terminal_01x02", "12V in (alt)",
-     "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",
-     {1: "VIN_RAW", 2: "GND"}, "power", pcb=(5, 32, 90))
-# Fuse is wired off-board: an inline fuse holder across the two screws of J7.
 SCREW2 = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
-part("J7", "Connector:Screw_Terminal_01x02", "FUSE (wire inline 5A fuse across)", SCREW2,
+# Power input: barrel jack J1 OR screw terminal J2 (both fitted, use one).
+part("J2", "Connector:Screw_Terminal_01x02", "12V in (screw terminal, +/-)", SCREW2,
+     {1: "VIN_RAW", 2: "GND"}, "power", pcb=(5, 32, 90))
+# Fuse, two options in parallel -- fit ONE:
+#   F1  on-board mini blade (ATM) fuse holder, or
+#   J7  screw terminal with an inline fuse holder wired across it.
+part("F1", "Device:Fuse", "5A mini blade (Keystone 3568 holder)",
+     "Fuse:Fuseholder_Blade_Mini_Keystone_3568",
+     {1: "VIN_RAW", 2: "VIN"}, "power", pcb=(28, 22, 0))
+part("J7", "Connector:Screw_Terminal_01x02", "FUSE alt: wire inline 5A fuse (fit F1 OR J7)", SCREW2,
      {1: "VIN_RAW", 2: "VIN"}, "power", pcb=(28, 22, 90))
 # No reverse-polarity FET: a reversed supply forward-biases the unidirectional
 # TVS and blows the external fuse on J7. The driver carriers and buck module also protect themselves.

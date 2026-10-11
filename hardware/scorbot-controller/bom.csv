@@ -1,7 +1,8 @@
 Qty,Value,Footprint,References,Populate
 1,"12V in (CUI PJ-102AH, 2.1 mm)",Connector_BarrelJack:BarrelJack_CUI_PJ-102AH_Horizontal,J1,yes
-1,12V in (alt),"Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G-5,08_1x02_P5.08mm_Horizontal",J2,yes
-1,FUSE (wire inline 5A fuse across),"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",J7,yes
+1,"12V in (screw terminal, +/-)","TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",J2,yes
+1,5A mini blade (Keystone 3568 holder),Fuse:Fuseholder_Blade_Mini_Keystone_3568,F1,yes
+1,FUSE alt: wire inline 5A fuse (fit F1 OR J7),"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",J7,yes
 1,SMBJ18A (unidirectional),Diode_SMD:D_SMB,D1,yes
 1,1000uF 25V low-ESR,Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,C1,yes
 1,100nF 50V,Capacitor_SMD:C_0805_2012Metric,C2,yes

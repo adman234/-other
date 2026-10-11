@@ -1,7 +1,7 @@
 # Scorbot ER-4u ESP32 master board (KiCad)
 
 KiCad project for the replacement controller: an ESP32 DevKit, six Pololu
-DRV8874 carriers, a Pololu D24V22F5 5 V buck module and two ADS1115 ADC
+DRV8874 carriers, a DROK mini 5 V buck module and two ADS1115 ADC
 modules plug into a master board, and the robot's DD-50 cable plugs straight
 into the board edge. The only SMD chip left for JLCPCB to place is the
 TCA9555; everything else on the board is passives, LEDs and diodes.
@@ -44,18 +44,19 @@ changes.
    their physical order and the row spacing were guessed. Fix
    `CARRIER_ROWS` / `CARRIER_ROW_SPACING` in `design.py` from Pololu's #4035
    pinout drawing and regenerate.
-2. **Module pin orders are placeholders too**: the Pololu D24V22F5
-   (`BUCK_PINS`) and the ADS1115 breakout (`ADS1115_PINS`, which varies by
+2. **Module pin orders**: the DROK buck socket (`BUCK_PINS`: IN+, IN-,
+   OUT-, OUT+; the module's EN pin hangs off the end) and the ADS1115 breakout (`ADS1115_PINS`, which varies by
    seller). Check them against the modules you buy and regenerate.
 3. **DevKit row spacing.** `DEVKIT_ROW_SPACING = 25.4` mm. Measure your
    38-pin ESP32-DevKitC-32E; clones vary.
 4. **DD-50 footprint** is generated from KiCad's D-sub geometry (pitch
    2.77 x 2.84 mm, rows 1 and 3 aligned, D-shell hole spacing 61.11 mm). Check it
    against the drawing of the exact right-angle connector you buy.
-5. **Routing.** Not done. The project's net classes are set up: Motor
-   (VM, VIN*, MOT*, GND) 1.0 mm, Power (+5V*, +3V3, BUCK_SW, ENC*_VLED) 0.6 mm,
-   Default 0.25 mm. A GND pour on B.Cu is defined; keep copper out from
-   under the DevKit antenna (rule area `ANTENNA_KEEPOUT`).
+5. **Routing is automatic (Freerouting) and needs a human pass.** Net
+   classes: Power (VIN_RAW, VIN, VM, GND) 1.5 mm, Motor (MOT*) 0.8 mm,
+   Supply (+5V*, +3V3, ENC*_VLED, VREF*) 0.5 mm, Default 0.25 mm. GND is a
+   pour on both layers. Look over the power and motor paths, and re-run the
+   router (`generator/gen_route.py`) after any placement change.
 
 ## Design notes
 
@@ -67,8 +68,14 @@ changes.
   VLED (ER III reference value; check against the ER-4u's upgraded PC510
   encoders). P0/P1 have 4.7 k pull-ups to 3.3 V and 1 nF, straight into the
   ESP32 (no buffer); the PCNT glitch filter handles noise.
+- **Power input, two options**: barrel jack J1 or screw terminal J2 (same
+  nets; use one).
+- **Fuse, two options**: fit EITHER the on-board mini blade holder F1
+  (Keystone 3568, 5 A ATM fuse) OR the screw terminal J7 with an inline
+  fuse holder wired across it. They are in parallel: two fuses in at once
+  double the trip current, and a bare wire in J7 bypasses F1.
 - **No reverse-polarity FET**: a reversed supply forward-biases the
-  unidirectional SMBJ18A and blows F1.
+  unidirectional SMBJ18A and blows the fuse.
 - **E-stop**: no relay; the NC contacts sit in the VM line (J3), so they must
   be rated for total motor current. Logic stays powered.
 - **Carrier current limit**: VREF is pulled to SLEEP (3.3 V) by 10 k on the

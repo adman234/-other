@@ -112,6 +112,10 @@ def build():
     move_bbox_to(fps["J3"], left=-1.0, top=58)
     fps["J7"].SetOrientationDegrees(270)  # fuse screw terminal, wire entry to the left edge
     move_bbox_to(fps["J7"], left=-1.0, top=bbox(fps["J2"])[3] + 2)
+    # On-board blade fuse holder beside J7 (same two nets, fit one or the other).
+    fps["F1"].SetOrientationDegrees(90)
+    jl, jt, jr, jb = bbox(fps["J7"])
+    move_bbox_to(fps["F1"], left=jr + 1.5, top=jt - 2)
     # DB50 on the right edge, mating face out.
     fps["J4"].SetOrientationDegrees(90)
     l, t, r, b = bbox(fps["J4"])
@@ -143,11 +147,11 @@ def build():
     for ref, left in (("U6", 86.0), ("U7", 106.0)):
         fps[ref].SetOrientationDegrees(0)
         move_bbox_to(fps[ref], left=left, top=46)
-    explicit = {"J1", "J2", "J3", "J4", "J7", "U2", "U6", "U7", "H1", "H2", "H3", "H4"} | {f"U{9 + i}" for i in range(1, 7)} \
+    explicit = {"J1", "J2", "J3", "J4", "J7", "F1", "U2", "U6", "U7", "H1", "H2", "H3", "H4"} | {f"U{9 + i}" for i in range(1, 7)} \
         | {f"C{20 + i}" for i in range(1, 7)} | {f"R{20 + i}" for i in range(1, 7)}
     for fp in fps.values():
         fp.SetOrientationDegrees(fp.GetOrientationDegrees())
-    shelf_pack(refs("power", explicit), 14, 22, 56, 60)
+    shelf_pack(refs("power", explicit), 31, 20, 58, 60)
     shelf_pack(refs("buck", explicit), 14, 62, 56, 88)
     shelf_pack(refs("i2c", explicit), 60, 48, 84, 88)
     shelf_pack(refs("mcu", explicit), 66, 100, 118, 124)
