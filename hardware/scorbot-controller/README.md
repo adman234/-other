@@ -45,24 +45,55 @@ changes.
 
 ## Must check before ordering boards
 
-1. **Pololu carrier pin order is a placeholder.** The pin *names* are right
-   (VIN, VM, GND, OUT1, OUT2, PMODE, IMODE, EN, PH, SLEEP, FAULT, CS, VREF), but
-   their physical order and the row spacing were guessed. Fix
-   `CARRIER_ROWS` / `CARRIER_ROW_SPACING` in `design.py` from Pololu's #4035
-   pinout drawing and regenerate.
-2. **Module pin orders**: the DROK buck socket (`BUCK_PINS`: IN+, IN-,
-   OUT-, OUT+; the module's EN pin hangs off the end) and the ADS1115 breakout (`ADS1115_PINS`, which varies by
-   seller). Check them against the modules you buy and regenerate.
-3. **DevKit row spacing.** `DEVKIT_ROW_SPACING = 25.4` mm. Measure your
-   38-pin ESP32-DevKitC-32E; clones vary.
-4. **DD-50 footprint** is generated from KiCad's D-sub geometry (pitch
-   2.77 x 2.84 mm, rows 1 and 3 aligned, D-shell hole spacing 61.11 mm). Check it
-   against the drawing of the exact right-angle connector you buy.
-5. **Routing is automatic (Freerouting) and needs a human pass.** Net
-   classes: Power (VIN_RAW, VIN, VM, GND) 1.5 mm, Motor (MOT*) 0.8 mm,
-   Supply (+5V*, +3V3, ENC*_VLED, VREF*) 0.5 mm, Default 0.25 mm. GND is a
-   pour on both layers. Look over the power and motor paths, and re-run the
-   router (`generator/gen_route.py`) after any placement change.
+Blockers (the board is wrong or unbuildable until these are done):
+
+1. **Pololu carrier pin order is a placeholder, and probably wrong.** The
+   #4035 board is 0.6" x 0.7", which only fits 7 pins per side, but
+   `CARRIER_ROWS` has 6 + 8. IMODE is most likely not broken out (the
+   carrier pulls it to GND through 20 k), leaving 7 logic pins. Copy the
+   real order and row spacing from Pololu's pinout drawing (or a carrier in
+   hand) into `CARRIER_ROWS` / `CARRIER_ROW_SPACING`, then re-run
+   `generate.sh`; it re-places and re-routes the board.
+2. **DevKit row spacing.** `DEVKIT_ROW_SPACING = 25.4` mm. Measure your
+   38-pin DevKitC between pin centres; clones vary.
+3. **DD-50 footprint** is generated from KiCad's D-sub geometry (pitch
+   2.77 x 2.84 mm, rows 1 and 3 aligned, D-shell hole spacing 61.11 mm).
+   Print the board 1:1 and lay the connector on it, or check the drawing of
+   the exact right-angle part you buy.
+4. **JLC part numbers.** `fab/jlc_bom.csv` holds LCSC numbers from memory
+   and search snapshots. Look each one up in JLCPCB's parts library (value,
+   package, Basic vs Extended, stock) before ordering.
+
+Check in KiCad / the JLC preview:
+
+5. **Module pin orders**: the DROK buck socket (`BUCK_PINS`: IN+, IN-,
+   OUT-, OUT+; the module's EN pin hangs off the end) and the ADS1115
+   breakout (`ADS1115_PINS`, Adafruit #1085 order; other sellers differ).
+6. **Autorouted copper.** Freerouting's result is DRC-clean but not pretty:
+   long parallel runs across the middle, and motor/VM traces near the
+   encoder lines. Look over the VM and MOT paths in particular.
+7. **Copper weight.** VM carries up to the 5 A fuse current on 1.5 mm
+   traces, and the motor outputs up to about 2.9 A (carrier limit) on
+   0.8 mm. On 1 oz copper that is roughly a 20-25 C rise at those peaks.
+   Order 2 oz copper, or widen VM/MOT in `netclasses.py` / `gen_route.py`.
+8. **Part orientation in JLC's placement preview**: diode and LED
+   polarity (D1, D3-D7) and pin 1 of U5. KiCad-to-JLC rotations sometimes
+   need a 90/180 degree fix in `jlc_cpl.csv`.
+9. **Screw terminal wire entry** (J2, J3, J7) should face the board edge.
+   Check in KiCad's 3D viewer.
+10. **Mechanical fit**: board is 185 x 128 mm with M3 holes in the
+    corners; check the enclosure and that the DevKit's USB port and
+    antenna end are reachable/clear.
+
+## Ordering at JLCPCB
+
+`generator/gen_fab.py` (run by `generate.sh`) writes `fab/`:
+
+- `scorbot_controller_gerbers.zip`: upload as the PCB (2 layers, 1.6 mm,
+  2 oz copper recommended).
+- `jlc_bom.csv` and `jlc_cpl.csv`: upload for PCB Assembly, top side only.
+  These list only the SMD parts JLC places. Everything else is
+  hand-soldered: see the buy list in the plan doc.
 
 ## Design notes
 
