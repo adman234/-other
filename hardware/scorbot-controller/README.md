@@ -6,13 +6,13 @@ modules plug into a master board, and the robot's DD-50 cable plugs straight
 into the board edge. The only SMD chip left for JLCPCB to place is the
 TCA9555; everything else on the board is passives, LEDs and diodes.
 
-**Status: v0.1, generated, schematic complete, PCB placed but NOT routed.**
+**Status: v0.2, generated: schematic complete, PCB placed and autorouted (needs a human review before ordering).**
 
 | File | What it is |
 | --- | --- |
 | `scorbot_controller.kicad_pro/.kicad_sch/.kicad_pcb` | The KiCad project (opens in KiCad 7, 8 or 9) |
 | `lib/Scorbot.kicad_sym`, `lib/Scorbot.pretty/` | Custom parts: DevKit socket, DRV8874 carrier socket, DD-50 female R/A |
-| `docs/schematic.pdf`, `docs/pcb_placement.png` | Previews |
+| `docs/schematic.pdf`, `docs/pcb_placement.png`, `docs/pcb_routed_F.png`, `docs/pcb_routed_B.png` | Previews (B side is mirrored) |
 | `bom.csv` | Grouped BOM |
 | `generator/design.py` | **Single source of truth**: every part, footprint, pin-to-net map and placement |
 | `generate.sh` | Regenerates everything from `design.py`, then checks it |
@@ -21,16 +21,22 @@ TCA9555; everything else on the board is passives, LEDs and diodes.
 
 ```sh
 pip install kiutils cairosvg   # plus KiCad 7+ (kicad-cli and its pcbnew Python module)
-./generate.sh
+# optional autorouting: Java 17+, xvfb-run and the Freerouting 1.9.0 jar
+# (https://github.com/freerouting/freerouting/releases/tag/v1.9.0)
+FREEROUTING_JAR=/path/freerouting-1.9.0.jar ./generate.sh
 ```
+
+Routing takes about 3 minutes. `gen_route.py` retries up to `FREEROUTING_TRIES`
+times (default 3) because Freerouting's result varies between runs, and it
+keeps the run with the fewest unconnected items.
 
 `generate.sh` writes the library, schematic, PCB and BOM, then:
 
 - exports KiCad's own netlist from the schematic and checks it against
   `design.py` pin by pin (currently 354 connections, 0 mismatches);
-- runs KiCad DRC on the board. Current result: no courtyard overlaps or
-  clearance errors; 233 unconnected items (expected, the board is unrouted)
-  and a few silkscreen warnings. `lib_footprint_issues` only appears when the
+- runs KiCad DRC on the board. Current result: 0 unconnected items, 0
+  clearance or courtyard errors, and a few silkscreen and thermal-relief
+  warnings. `lib_footprint_issues` only appears when the
   standard KiCad libraries aren't in the global library table.
 
 Editing the `.kicad_sch` / `.kicad_pcb` by hand is fine once you take over

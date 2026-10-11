@@ -1,4 +1,4 @@
-"""Generate scorbot_controller.kicad_pcb from design.py (placement only, unrouted).
+"""Generate scorbot_controller.kicad_pcb from design.py (placement; gen_route.py routes it).
 
 Run with the Python that ships KiCad's pcbnew module (KiCad 7+).
 Edge-critical parts (power jacks, E-stop terminal, DB50, DevKit, driver
@@ -170,7 +170,7 @@ def build():
         seg.SetWidth(MM(0.1))
         board.Add(seg)
     for txt, x, y, size in (("SCORBOT ER-4u ESP32 MASTER BOARD v0.1", 92, 91, 1.5),
-                            ("UNROUTED - placement only. Carrier socket pinout UNVERIFIED.", 92, 94.5, 1.0)):
+                            ("Autorouted - review before ordering. Carrier socket pinout UNVERIFIED.", 92, 94.5, 1.0)):
         t = pcbnew.PCB_TEXT(board)
         t.SetText(txt)
         t.SetPosition(pt(x, y))
@@ -183,6 +183,7 @@ def build():
     zone.SetLayer(pcbnew.B_Cu)
     zone.SetNet(nets["GND"])
     zone.SetZoneName("GND")
+    zone.SetPadConnection(pcbnew.ZONE_CONNECTION_THT_THERMAL)  # solid to SMD pads, spokes on THT
     zone.SetLocalClearance(MM(0.3))
     zone.SetMinThickness(MM(0.25))
     poly = zone.Outline()

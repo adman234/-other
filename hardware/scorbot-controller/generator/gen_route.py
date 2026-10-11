@@ -5,10 +5,12 @@
 Exports a Specctra DSN, rewrites its net classes (KiCad's Python board loader
 ignores the project's netclass patterns), runs Freerouting headless under
 xvfb-run, imports the session, refills the GND pours and saves.
-GND is a pour on both layers; Freerouting drops GND vias into the B.Cu plane.
+GND is routed as traces (Freerouting would treat the B.Cu pour as an unbroken
+plane), then poured on both layers and stitched with vias.
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -25,7 +27,8 @@ PCB = os.path.normpath(os.path.join(HERE, "..", "scorbot_controller.kicad_pcb"))
 CLASSES = [
     ("Power", 1500, 300, "Via_1000:500", lambda n: n in ("VIN_RAW", "VIN", "VM")),
     ("Motor", 800, 300, "Via_1000:500", lambda n: n.startswith("MOT")),
-    ("Supply", 500, 250, "Via_800:400", lambda n: n in ("+5V", "+3V3", "+5V_DK") or n.endswith("_VLED")),
+    ("Ground", 400, 200, "Via_800:400", lambda n: n == "GND"),
+    ("Supply", 500, 250, "Via_800:400", lambda n: n in ("+5V", "+5V_DK") or n.startswith("VREF")),
 ]
 DEFAULT = (250, 200, "Via_800:400")
 VIAS = {"Via_800:400": 800, "Via_1000:500": 1000}
@@ -42,6 +45,9 @@ def rewrite_dsn(text):
         x0, x1, y0, y1 = min(xs) + EDGE_MARGIN, max(xs) - EDGE_MARGIN, min(ys) + EDGE_MARGIN, max(ys) - EDGE_MARGIN
         return f"{m.group(1)}{x1} {y0}  {x0} {y0}  {x0} {y1}  {x1} {y1}  {x1} {y0})"
     text = re.sub(r'(\(boundary\s*\(path pcb 0\s+)([-\d\s]+)\)', shrink, text, count=1)
+    # GND is routed as real traces: Freerouting assumes a plane stays whole,
+    # but its own tracks cut the B.Cu pour into islands.
+    text = re.sub(r'\(plane GND \(polygon [^)]*\)\)\s*', '', text, count=1)
     # via padstacks
     stacks = "".join(f'    (padstack "{name}"\n      (shape (circle F.Cu {d}))\n      (shape (circle B.Cu {d}))\n'
                      f'      (attach off)\n    )\n' for name, d in VIAS.items())
@@ -149,6 +155,7 @@ def add_top_ground(path):
     z.SetLayer(pcbnew.F_Cu)
     z.SetNet(gnd)
     z.SetZoneName("GND_TOP")
+    z.SetPadConnection(pcbnew.ZONE_CONNECTION_THT_THERMAL)
     z.SetLocalClearance(src.GetLocalClearance())
     z.SetMinThickness(src.GetMinThickness())
     poly = z.Outline()
@@ -157,6 +164,20 @@ def add_top_ground(path):
     for i in range(o.PointCount()):
         poly.Append(o.CPoint(i).x, o.CPoint(i).y)
     board.Add(z)
+    for zone in board.Zones():
+        if not zone.GetIsRuleArea():
+            zone.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)
+    board.Save(path)
+    board = pcbnew.LoadBoard(path)
+    board.BuildConnectivity()
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    added = stitch(board)
+    board.Save(path)
+    board = pcbnew.LoadBoard(path)
+    board.BuildConnectivity()
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    pruned = prune_floating_vias(board)
+    print(f"stitching vias: {added - pruned} ({pruned} floating ones removed)")
     board.Save(path)
     board = pcbnew.LoadBoard(path)
     board.BuildConnectivity()
@@ -165,13 +186,106 @@ def add_top_ground(path):
     netclasses.write()
 
 
-def main():
-    jar = os.environ.get("FREEROUTING_JAR")
-    if not jar:
-        sys.exit("set FREEROUTING_JAR to freerouting-1.9.0.jar")
-    passes = os.environ.get("FREEROUTING_PASSES", "40")
-    tmp = tempfile.mkdtemp()
+def prune_floating_vias(board):
+    """Remove stitching vias that only join pour islands to each other.
+
+    A pour piece is anchored when a GND pad or GND track touches it; anchoring
+    spreads through vias. Vias between two unanchored pieces are removed, and
+    the refill then drops those islands."""
+    fills = {z.GetLayer(): z.GetFilledPolysList(z.GetLayer()) for z in board.Zones()
+             if z.GetNetname() == "GND" and not z.GetIsRuleArea()}
+
+    def piece(layer, p):
+        f = fills[layer]
+        for i in range(f.OutlineCount()):
+            if f.Contains(p, i):
+                return (layer, i)
+        return None
+
+    anchored = set()
+    for fp in board.GetFootprints():
+        for pad in fp.Pads():
+            if pad.GetNetname() == "GND":
+                for layer in fills:
+                    if pad.IsOnLayer(layer):
+                        k = piece(layer, pad.GetPosition())
+                        if k:
+                            anchored.add(k)
+    vias = []
+    for t in board.GetTracks():
+        if t.GetNetname() != "GND":
+            continue
+        if t.GetClass() == "PCB_VIA":
+            vias.append((t, [piece(l, t.GetPosition()) for l in fills]))
+        else:
+            for p in (t.GetStart(), t.GetEnd()):
+                k = piece(t.GetLayer(), p)
+                if k:
+                    anchored.add(k)
+    # routed GND vias (from the session) anchor both pieces they sit in
+    changed = True
+    while changed:
+        changed = False
+        for v, ks in vias:
+            ks = [k for k in ks if k]
+            if any(k in anchored for k in ks) and not all(k in anchored for k in ks):
+                anchored.update(ks)
+                changed = True
+    removed = 0
+    for v, ks in vias:
+        ks = [k for k in ks if k]
+        if not any(k in anchored for k in ks):
+            board.Remove(v)
+            removed += 1
+    return removed
+
+
+def stitch(board, pitch_mm=6.0, via_mm=0.8, drill_mm=0.4, keep_mm=0.6):
+    """Drop GND vias on a grid wherever both pours have solid copper around the
+    point, tying the F.Cu and B.Cu pours (and their islands) together."""
+    MM = pcbnew.FromMM
+    gnd = board.FindNet("GND")
+    fills = {}
+    for z in board.Zones():
+        if z.GetNetname() == "GND" and not z.GetIsRuleArea():
+            fills[z.GetLayer()] = z.GetFilledPolysList(z.GetLayer())
+    r = MM(via_mm / 2 + keep_mm)
+    box = board.GetBoardEdgesBoundingBox()
+    n = 0
+    y = box.GetTop() + MM(pitch_mm / 2)
+    while y < box.GetBottom():
+        x = box.GetLeft() + MM(pitch_mm / 2)
+        while x < box.GetRight():
+            ring = [pcbnew.VECTOR2I(x + int(r * dx), y + int(r * dy))
+                    for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1), (.7, .7), (-.7, .7), (.7, -.7), (-.7, -.7))]
+            if all(all(f.Contains(p) for p in ring) for f in fills.values()):
+                v = pcbnew.PCB_VIA(board)
+                v.SetPosition(pcbnew.VECTOR2I(x, y))
+                v.SetWidth(MM(via_mm))
+                v.SetDrill(MM(drill_mm))
+                v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+                v.SetNet(gnd)
+                board.Add(v)
+                n += 1
+            x += MM(pitch_mm)
+        y += MM(pitch_mm)
+    return n
+
+
+def unconnected(path):
+    board = pcbnew.LoadBoard(path)
+    report = path + ".drc.txt"
+    pcbnew.WriteDRCReport(board, report, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    n = len(re.findall(r"^\[unconnected_items\]", open(report).read(), re.M))
+    os.remove(report)
+    return n
+
+
+def route_once(jar, passes, tmp):
     dsn, ses = os.path.join(tmp, "board.dsn"), os.path.join(tmp, "board.ses")
+    for f in (dsn, ses):
+        if os.path.exists(f):
+            os.remove(f)
     board = pcbnew.LoadBoard(PCB)
     strip_routing(board)
     board.Save(PCB)
@@ -182,21 +296,40 @@ def main():
         text = rewrite_dsn(f.read())
     with open(dsn, "w") as f:
         f.write(text)
-    subprocess.run(["xvfb-run", "-a", "java", "-jar", jar, "-de", dsn, "-do", ses, "-mp", passes],
-                   check=True, cwd=tmp, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["xvfb-run", "-a", "java", "-jar", jar, "-de", dsn, "-do", ses, "-mp", passes,
+                    "-oit", "100"],  # skip the optimizer: it can hang for hours on this board
+                   check=True, cwd=tmp, timeout=1800, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if not os.path.exists(ses):
         sys.exit("Freerouting produced no session")
     board = pcbnew.LoadBoard(PCB)
     tracks, vias = import_ses(board, ses)
     print(f"imported {tracks} track segments, {vias} vias")
     board.Save(PCB)
-    board = pcbnew.LoadBoard(PCB)
-    board.BuildConnectivity()
-    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
-    board.Save(PCB)
     netclasses.write()
     add_top_ground(PCB)
-    print("routed", PCB, "tracks:", len(board.GetTracks()))
+    return unconnected(PCB)
+
+
+def main():
+    jar = os.environ.get("FREEROUTING_JAR")
+    if not jar:
+        sys.exit("set FREEROUTING_JAR to freerouting-1.9.0.jar")
+    passes = os.environ.get("FREEROUTING_PASSES", "100")
+    tries = int(os.environ.get("FREEROUTING_TRIES", "3"))
+    tmp = tempfile.mkdtemp()
+    best = None
+    # Freerouting is not fully deterministic: retry and keep the best result.
+    for attempt in range(1, tries + 1):
+        n = route_once(jar, passes, tmp)
+        print(f"attempt {attempt}: {n} unconnected")
+        if best is None or n < best[0]:
+            best = (n, os.path.join(tmp, "best.kicad_pcb"))
+            shutil.copy(PCB, best[1])
+        if n == 0:
+            break
+    shutil.copy(best[1], PCB)
+    netclasses.write()
+    print(f"routed {PCB}: {best[0]} unconnected")
 
 
 if __name__ == "__main__":
