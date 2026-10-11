@@ -4,3 +4,5 @@ fp-info-cache
 *.lck
 _autosave-*
 __pycache__/
+generator/logs/
+generator/__pycache__/

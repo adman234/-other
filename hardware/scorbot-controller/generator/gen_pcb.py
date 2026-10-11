@@ -11,6 +11,7 @@ import uuid
 import pcbnew
 
 import design as D
+import netclasses
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.normpath(os.path.join(HERE, ".."))
@@ -217,6 +218,7 @@ def build():
     board.BuildConnectivity()
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     board.Save(path)
+    netclasses.write()
     return path
 
 

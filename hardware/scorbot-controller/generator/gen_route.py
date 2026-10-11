@@ -15,7 +15,7 @@ import tempfile
 
 import pcbnew
 
-import design as D
+import netclasses
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.normpath(os.path.join(HERE, "..", "scorbot_controller.kicad_pcb"))
@@ -89,6 +89,7 @@ def main():
     board.BuildConnectivity()
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     board.Save(PCB)
+    netclasses.write()
     print("routed", PCB, "tracks:", len(board.GetTracks()))
 
 
