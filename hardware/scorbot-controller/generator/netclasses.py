@@ -9,8 +9,9 @@ import os
 
 PRO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scorbot_controller.kicad_pro"))
 
+# GND is not listed: it is a pour on both layers (Default class).
 CLASSES = {  # name: (track mm, clearance mm, via dia, via drill, patterns)
-    "Power": (1.5, 0.3, 1.0, 0.5, ["VIN_RAW", "VIN", "VM", "GND"]),
+    "Power": (1.5, 0.3, 1.0, 0.5, ["VIN_RAW", "VIN", "VM"]),
     "Motor": (0.8, 0.3, 1.0, 0.5, ["MOT*"]),
     "Supply": (0.5, 0.25, 0.8, 0.4, ["+5V", "+5V_DK", "+3V3", "ENC*_VLED", "VREF*"]),
 }
